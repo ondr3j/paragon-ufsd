@@ -1,0 +1,22 @@
+End-user License Agreement for Paragon Software Products
+
+This End-User License Agreement (`EULA') is a legally valid contract between the end user of the software and Paragon Software GmbH, Heinrich-von-Stephan-Strabe 5c, D-79100 Freiburg (hereinafter referred to as `Paragon'). Please read this Agreement thoroughly before acquiring the software. Upon acquisition of the software, the following provisions will be deemed to have been agreed to with binding effect. 
+
+1. Copyright
+This software product, including any handbooks, instructions and/or other information material, is protected by copyright. Any copy protection present in the software, a copyright notice, a registration number recorded in it or other features serving to identify the program may not be removed.
+
+2. License agreement
+Unless determined otherwise, Paragon grants the software's end user the simple right to install the software on a device and use it for an unlimited period of time.  The right to use is limited to the software's object code. It will expire if the end user violates the conditions of use established in this Agreement. Paragon is not obligated to provide the end user with the source code. Unless determined otherwise in the following, the acquisition of this license does not entitle the end user to provide, install and/or run the software on multiple devices at once, create and/or distribute copies of the software, transfer the software from one device to another by electronic means or over a network after its original download or installation on a device, modify, decompile, adapt or translate the software or combine it with other software, or reengineer or disassembly the software. The right to use is limited to the specific software product acquired in the respective version thereof and does not extend to subsequent versions of the software. The license agreement does not provide any rights to grant a sublicense to the software to third parties. Paragon reserves all further rights, in particular the rights to dissemination, duplication and publication.
+
+3. Special forms of use
+An acquisition in the form of the granting of a pay-per-use license entitles the end user to run or use the software on a one-time basis only; further use of the software is not permitted. The acquisition of the software under the stipulation of a particular term of contract only entitles the end user to use the software until the term of contract expires. The acquisition of a technician license entitles the person in question to use the software on different systems, as long as the software is not used on multiple systems simultaneously. The acquisition of a site license (multi-station license) entitles the end user to use the software on an unlimited number of computers at a particular company site, while the acquisition of a company license entitles the end user to use the software on all computers at all sites of the company. The use of free software from print media or online media allows private use only, unless a separate agreement for commercial purposes of use provides otherwise. Commercial use is not permitted.
+
+4. Guarantee
+Paragon is in no way responsible for malfunctions or damage caused by modification of the software or the use of the software in conjunction with hardware configurations, platforms or operating systems other than the recommended or intended hardware configuration, platform or operating system. Any liability for defects for alpha/beta versions (pre-release versions) relinquished free of charge is excluded.  Our General Terms and Conditions also apply.
+
+5. Miscellaneous
+Should individual provisions of this Agreement prove to be ineffective, the validity of the remaining provisions shall not be affected. In such case, a provision which suits the economic interest of the Contracting Parties shall be agreed upon to take the place of the ineffective provision. This End-User License Agreement can be viewed and printed out at 
+http://www.paragon-software.com/eula.html.
+(Status as of: February 2012)
+
+

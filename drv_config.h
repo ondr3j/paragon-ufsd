@@ -1,0 +1,2 @@
+#define UFSD_FAKE_HFS_JOURNAL 1
+#define PACKAGE_TAG "ufsd_f_95961_r278275_b782"

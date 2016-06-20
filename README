@@ -1,0 +1,213 @@
+﻿PARAGON NTFS & HFS+ FOR LINUX
+		
+1.1 About this README file
+
+There are 2 products in Paragon file system drivers for Linux family:
+- Paragon NTFS&HFS+ for Linux 9.4 Express
+- Paragon NTFS&HFS+ for Linux 9.4 Professional
+
+Information provided in this README file applies to all of the products
+unless otherwise noted.
+
+
+1.2 Key features
+
+All of the products share the following features:
+
+  - Transparent read-write access to NTFS and/or HFS+ volumes;
+  - High performance (in some cases even better than Ext4 FS);
+  - Easy installation and unistallation (assistant scripts);
+  - Support for the latest Linux Kernels and distributions;
+  - Support for SMP kernels.
+  
+1.2.1 Paragon NTFS & HFS+ for Linux 9.4 Express
+
+What's new in Paragon NTFS & HFS+ for Linux 9.4 Express:
+
+  - Support for Kernel versions from 2.6.36 up to 4.4.x;
+  - Improved NTFS file systems support (including compatibility with Windows 10 NTFS);
+  - Improved HFS+ support (including compatibility with OS X El Capitan HFS+);
+  - Improved support for very large volumes (16+TB);
+  - Improved TRIM/discard support for SSD storages.
+
+Limitations:
+
+  - Encrypted files are read encrypted, without decryption capability;
+  - Only data stream is copied during copy operation;
+  - Hard links and symlinks are copied as files, without link information.   
+
+1.2.2 Paragon NTFS & HFS+ for Linux 9.4 Professional:
+
+Additional features of the Professional edition:
+  - Full support of HFS+ native journal;  
+  - Additional file system utilities:
+	- mkntfs  - formats a volume on a user specified (block) device into NTFS file system;
+	- chkntfs - checks NTFS volumes integrity and fixes errors;
+    - mkhfs  - formats a volume on a user specified (block) device into HFS+ file system;
+	- chkhfs - checks HFS+ Volumes integrity and fixes errors;	
+  - DKMS library support - auto rebuilding of the UFSD driver module for a supported Linux Kernel;
+  - Auto mounting support - UFSD driver is integrated into the Linux system for auto mounting NTFS/HFS++ volumes by default.
+
+2. System Requirements
+
+2.1 Hardware requirements:
+
+  - CPU: Intel Pentium 300 MHz and higher, or compatible;
+  - both 32 and 64-bit CPUs are supported.
+  - 16MB of RAM;
+  
+Due to unique technology Paragon file system drivers for Linux
+only need around 650 Kb of RAM to work with partition of 250 Gb and larger.
+Kernel modules itself occupy around 800 Kb of RAM.
+
+Supported Linux versions:
+  - Linux with kernel versions 2.6.36 and newer;
+  - Linux with kernel versions up to 4.4.x
+    (UFSD driver was internally tested with Kernels up to 4.4.9),
+
+Linux distributions this product was tested with:
+
+Ubuntu 16.04;
+Debian 8.4;
+Fedora 23;
+OpenSuse 42.1;
+CentOS 7.
+
+2.2 Development Environment
+
+A development environment is required to compile Linux drivers and 
+utilities. Please verify these tools are all functional. The easiest 
+way is to choose the developer tool kit when installing Linux.
+What has to be installed:
+
+  - Kernel source code (recommended) or Kernel header files;
+	  #rpm -qa|grep kernel-source (for RPM based kernel-sources)
+  - GNU C compiler;
+	  #gcc --version
+  - GNU C++ compiler (for Professional version only);
+	  #g++ --version
+  - GNU glibc-static (recommended for Professional version only);
+  - GNU Make;
+	  #make --version
+  - GNU ld (binutils);
+	  #ld --version
+  - Modutils (module-init tools);
+	  #insmod -V
+  - DKMS library (for Professional version only)
+	 #dkms --version
+
+2.3 Limitations
+
+- GNU C compiler (gcc) must have the version 4.4 or higher.
+- The user should login as root to install the drivers and utilities.
+- Correct operation is not guaranteed for customized Linux kernels.
+
+3. Installation
+
+3.1 Shipment
+
+Setup files of 'NTFS & HFS+ for Linux' are provided compressed in an archive, which can be downloaded from company's web site.
+
+3.2 Components
+
+The package includes the following components:
+- The source files for the NTFS/HFS+ for Linux driver;
+- The source files for additional utilities (Professional edition only);
+- Assistant script files for easy installation and uninstallation.
+- Configuration files for DKMS library and auto mount script (Professional edition only).
+
+3.3 Installing the 'NTFS & HFS++ for Linux'
+
+  1. Log in as root. This step is obligatory;
+  2. Build and install the 'NTFS & HFS+ and for Linux' driver using the "install.sh" script.
+Alternatively, driver binary module may be built manually using 'configure' and 'make driver' commands.
+  3. Activating (loading) the driver. 
+After building and installing, the 'NTFS & HFS+ for Linux' driver can be referenced as a "Universal File System Driver" (UFSD), when mounting an NTFS and/or HFS+ partitions.
+
+The steps 1-2 should be made only once while step 3 is the standard way of using file system drivers in Linux environment.
+
+'NTFS & HFS+ for Linux' includes a set of assistant script files for the simplification of building, installing and uninstalling procedures. Note that these assistant scripts may fail to work in customized Linux configurations or unsupported Linux distributions. 
+
+The most friendly and convenient assistant scripts are the 'install.sh' and 'uninstall.sh' script files. The alternative is to use the special makefile together with the 'make' utility.
+
+The sections below describe the installation procedure.
+
+3.3.1 Unpacking Setup Files
+
+Setup files of the Linux-based version of the 'NTFS & HFS+ for Linux'  are provided in the form of a gzip archive. The archive should be copied to the hard disk and decompressed.  
+
+For example:
+For the 'NTFS & HFS+ for Linux' driver and utilities:	
+- create separate folder (e.g. mkdir /usr/tmp/ufsd)
+- change the current directory to the new one (e.g. cd /usr/tmp/ufsd)
+- use tar utility to unpack initial archive (e.g. tar -xf /path/to/the/initial/archive/ufsd_*.tar.gz
+
+Next step is to build and install the NTFS & HFS+ for Linux driver. 
+
+3.3.2 Using the INSTALL.SH Assistant Script
+
+The assistant script 'install.sh' provides the extremely easy and flexible way to make the 'NTFS & HFS+ for Linux' and install driver module in the system. Additionally, the script reconfigures OS so that driver module is automatically rebuilt for another supported Kernel version (Professional edition only).
+
+Please note that development tools and kernel sources are required to present
+on the system and stay in the default locations to build and install the drivers.
+
+To start, simply run the install.sh script with root privileges
+e.g.  # ./install.sh  or $ sudo ./install.sh
+The assistant script will automatically perform following actions:
+1. Detect the Linux Kernel version;
+2. Find kernel header files and libraries needed for building the drivers;
+3. Add service for rebuilding driver module for supported Kernels via the DKMS library (Professional edition only).
+4. Build the driver and binary modules;
+5. Install the driver;
+6. Add automatic mounting settings for NTFS/HFS++ volumes (Professional edition only)
+7. Build and install additional utilities (Professional edition only).
+
+If the user confirms automatic mounting of NTFS/HFS+ volumes, all of them will be mounted automatically on attachment.
+
+Script steps:
+1. The script tries to locate the source files and development tools automatically. In case of successful locating files, the script builds and installs the 'NTFS & HFS+ for Linux' driver. This step cannot be customized in the 'install.sh'  script file.
+2. Additional utilities can be build (Professional edition only). In case the user confirms it, the utilities will be build and automatically copied to /usr/local/bin.
+3. Driver module rebuilding for supported Kernels can be added (Professional edition only). In case user confirms it and DKMS library is already installed on the platform. Installation script adds new DKMS configuration to the system so UFSD driver module is automatically rebuild for another supported Kernel version on system boot, if needed.
+4. Usage of automatic mounting settings for NTFS/HFS+ volumes can be enabled (Professional edition only). In case the user confirms it, UFSD driver build be used to mount all NTFS/HFS+ volumes attached to the system.
+
+4. Uninstalling the Driver
+
+To completely remove driver from the current Kernel, one should dismount all NTFS and/or HFS+, uninstall the drivers and optionally remove the binary files. 'NTFS & HFS+ for Linux' provides tools for the drivers uninstall automation.
+
+The assistant script 'uninstall.sh' allows to completely remove the driver from the current system Kernel with correct uninstalling it from the computer. The script supports the unattended and interactive operation modes.
+
+4.1 Using the UNINSTALL.SH Assistant Script
+
+The assistant script 'uninstall.sh' provides the extremely easy and flexible way to deactivate and remove driver modules and utilities from the current system Kernel. The script performs the correct deactivation, uninstallation and completely removes driver's and utilities' files.
+
+4.1.1 Uninstalling in unattended Mode
+
+Unmount all currently mounted NTFS and/or HFS++ partitions and then run the 'uninstall.sh' script:
+	
+	# ./uninstall.sh
+
+The assistant script will automatically perform the following actions:
+1) Deactivate driver modules;
+2) Uninstall the driver;
+3) Remove all binary and source files of the driver;
+4) Uninstall utilities.
+
+5. Using the 'NTFS & HFS+ for Linux'
+
+After building and installing the NTFS & HFS+ for Linux driver, it can be automatically loaded at system start up. The driver allows mounting NTFS and HFS++ partitions and provides access to their contents. 
+
+5.1 Mounting NTFS/HFS+ partitions manually
+
+To get access to a NTFS and/or HFS++ partition, use the standard "mount" command with file system type set to "ufsd". For example: 
+
+	mount -t ufsd /dev/sdb1 /mnt/ntfs
+
+5.2 Unmounting NTFS/HFS+ partitions manually
+
+To unmount an NTFS or HFS+ partition, use the standard "umount" command.
+For example:
+
+	umount /dev/sdb1
+
+More information on mount options, additional utilities and troubleshooting
+can be found in complete user manual found inside of the distribution package.
