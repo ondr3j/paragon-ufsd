@@ -4950,7 +4950,7 @@ ufsd_get_acl_ex(
   //
   // Possible values of 'type' was already checked above
   //
-  name = ACL_TYPE_ACCESS == type? POSIX_ACL_XATTR_ACCESS : POSIX_ACL_XATTR_DEFAULT;
+  name = ACL_TYPE_ACCESS == type ? XATTR_NAME_POSIX_ACL_ACCESS : XATTR_NAME_POSIX_ACL_DEFAULT;
 
   if ( !locked )
     lock_ufsd( sbi );
@@ -5073,13 +5073,13 @@ ufsd_set_acl_ex(
         if ( 0 == err )
           acl = NULL; // acl can be exactly represented in the traditional file mode permission bits
       }
-      name = POSIX_ACL_XATTR_ACCESS;
+      name = XATTR_NAME_POSIX_ACL_ACCESS;
       break;
 
     case ACL_TYPE_DEFAULT:
       if ( !S_ISDIR( i->i_mode ) )
         return acl ? -EACCES : 0;
-      name = POSIX_ACL_XATTR_DEFAULT;
+      name = XATTR_NAME_POSIX_ACL_DEFAULT;
       break;
 
     default:
@@ -5475,8 +5475,8 @@ release_and_out:
 #define UFSD_XATTR_USER_DOSATTRIB           "user.DOSATTRIB"
 #define UFSD_XATTR_USER_DOSATTRIB_LEN       ( sizeof( UFSD_XATTR_USER_DOSATTRIB ) - 1 )
 
-#define POSIX_ACL_XATTR_ACCESS_LEN          ( sizeof( POSIX_ACL_XATTR_ACCESS ) - 1 )
-#define POSIX_ACL_XATTR_DEFAULT_LEN         ( sizeof( POSIX_ACL_XATTR_DEFAULT ) - 1 )
+#define XATTR_NAME_POSIX_ACL_ACCESS_LEN          ( sizeof( XATTR_NAME_POSIX_ACL_ACCESS ) - 1 )
+#define XATTR_NAME_POSIX_ACL_DEFAULT_LEN         ( sizeof( XATTR_NAME_POSIX_ACL_DEFAULT ) - 1 )
 
 
 ///////////////////////////////////////////////////////////
@@ -5548,15 +5548,15 @@ ufsd_getxattr(
     break;
 
 #if defined UFSD_NTFS || defined UFSD_HFS
-  case POSIX_ACL_XATTR_ACCESS_LEN: // 23
-    if ( 0 == memcmp( name, POSIX_ACL_XATTR_ACCESS, POSIX_ACL_XATTR_ACCESS_LEN + 1 ) ) {
+  case XATTR_NAME_POSIX_ACL_ACCESS_LEN: // 23
+    if ( 0 == memcmp( name, XATTR_NAME_POSIX_ACL_ACCESS, XATTR_NAME_POSIX_ACL_ACCESS_LEN + 1 ) ) {
       // exactly "system.posix_acl_access"
       what  = 2;
     }
     break;
 
-  case POSIX_ACL_XATTR_DEFAULT_LEN: // 24
-    if ( 0 == memcmp( name, POSIX_ACL_XATTR_DEFAULT, POSIX_ACL_XATTR_DEFAULT_LEN + 1 ) ) {
+  case XATTR_NAME_POSIX_ACL_DEFAULT_LEN: // 24
+    if ( 0 == memcmp( name, XATTR_NAME_POSIX_ACL_DEFAULT, XATTR_NAME_POSIX_ACL_DEFAULT_LEN + 1 ) ) {
       // exactly "system.posix_acl_default"
       what  = 2;
     }
@@ -5603,7 +5603,7 @@ ufsd_getxattr(
 #if defined UFSD_NTFS || defined UFSD_HFS
   else if ( 2 == what ) {
     err = sbi->options.acl
-      ? ufsd_xattr_get_acl( i, POSIX_ACL_XATTR_ACCESS_LEN == name_len? ACL_TYPE_ACCESS : ACL_TYPE_DEFAULT, buffer, size )
+      ? ufsd_xattr_get_acl( i, XATTR_NAME_POSIX_ACL_ACCESS_LEN == name_len? ACL_TYPE_ACCESS : ACL_TYPE_DEFAULT, buffer, size )
       : -EOPNOTSUPP;
   }
 #endif
@@ -5712,15 +5712,15 @@ ufsd_setxattr(
     break;
 
 #if defined UFSD_NTFS || defined UFSD_HFS
-  case POSIX_ACL_XATTR_ACCESS_LEN: // 23
-    if ( 0 == memcmp( name, POSIX_ACL_XATTR_ACCESS, POSIX_ACL_XATTR_ACCESS_LEN + 1 ) ) {
+  case XATTR_NAME_POSIX_ACL_ACCESS_LEN: // 23
+    if ( 0 == memcmp( name, XATTR_NAME_POSIX_ACL_ACCESS, XATTR_NAME_POSIX_ACL_ACCESS_LEN + 1 ) ) {
       // exactly "system.posix_acl_access"
       what  = 2;
     }
     break;
 
-  case POSIX_ACL_XATTR_DEFAULT_LEN: // 24
-    if ( 0 == memcmp( name, POSIX_ACL_XATTR_DEFAULT, POSIX_ACL_XATTR_DEFAULT_LEN + 1 ) ) {
+  case XATTR_NAME_POSIX_ACL_DEFAULT_LEN: // 24
+    if ( 0 == memcmp( name, XATTR_NAME_POSIX_ACL_DEFAULT, XATTR_NAME_POSIX_ACL_DEFAULT_LEN + 1 ) ) {
       // exactly "system.posix_acl_default"
       what  = 2;
     }
@@ -5736,7 +5736,7 @@ ufsd_setxattr(
 
     switch( name_len ) {
     case UFSD_XATTR_SYSTEM_DOS_ATTRIB_LEN:
-      attrib = *(unsigned char*)value;  
+      attrib = *(unsigned char*)value;
       break;
     case UFSD_XATTR_SYSTEM_NTFS_ATTRIB_LEN:
       attrib = *(unsigned int*)value;
@@ -5768,11 +5768,11 @@ ufsd_setxattr(
     if ( 0 == err )
       err = ufsdapi_set_dosattr( sbi->ufsd, u->ufile, attrib );
     unlock_ufsd( sbi );
-  } 
+  }
 #if defined UFSD_NTFS || defined UFSD_HFS
   else if ( 2 == what ) {
     err = sbi->options.acl
-      ? ufsd_xattr_set_acl( i, POSIX_ACL_XATTR_ACCESS_LEN == name_len? ACL_TYPE_ACCESS : ACL_TYPE_DEFAULT, value, size )
+      ? ufsd_xattr_set_acl( i, XATTR_NAME_POSIX_ACL_ACCESS_LEN == name_len ? ACL_TYPE_ACCESS : ACL_TYPE_DEFAULT, value, size )
       : -EOPNOTSUPP;
   }
 #endif
@@ -5821,7 +5821,7 @@ ufsd_removexattr(
     IN const char     *name
     )
 {
-  return ufsd_setxattr( de, name, NULL, 0, XATTR_REPLACE ); 
+  return ufsd_setxattr( de, name, NULL, 0, XATTR_REPLACE );
 }
 
 #endif // #ifdef CONFIG_FS_POSIX_ACL
@@ -8062,6 +8062,7 @@ ufsd_follow_link(
     if ( err > 0 ) {
       *op = ret;
     } else {
+      kfree( ret );
       *op = ERR_PTR( err );
       ret = ERR_PTR( err );
     }
@@ -8071,10 +8072,52 @@ ufsd_follow_link(
 
   VfsTrace( -1, Dbg, ("follow_link -> %p\n", ret ));
 
-  return (char*)ret;
+  return (char *)ret;
 }
-#else
-#error "Unknown version of follow_link"
+#endif
+
+///////////////////////////////////////////////////////////
+// ufsd_get_link
+//
+// inode_operations::get_link
+///////////////////////////////////////////////////////////
+#if defined HAVE_STRUCT_INODE_OPERATIONS_GET_LINK && HAVE_STRUCT_INODE_OPERATIONS_GET_LINK
+static const char *
+ufsd_get_link(
+    IN struct dentry       *de,
+    IN struct inode        *i,
+    IN struct delayed_call *done
+    )
+{
+  char *ret;
+  usuper *sbi = UFSD_SB( i->i_sb );
+
+  if (!de) {
+    ret = ERR_PTR( -ECHILD );
+    goto out;
+  }
+
+  VfsTrace( +1, Dbg, ("get_link: r=%lx, '%.*s'\n", i->i_ino, (int)de->d_name.len, de->d_name.name ));
+
+  ret = kmalloc( PAGE_SIZE, GFP_NOFS );
+
+  if ( NULL != ret ) {
+    int err = ufsd_readlink_hlp( sbi, i, ret, PAGE_SIZE );
+    if ( err > 0 ) {
+      set_delayed_call(done, kfree_link, ret);
+    } else {
+      kfree( ret );
+      ret = ERR_PTR( err );
+    }
+  } else {
+    ret = ERR_PTR( -ENOMEM );
+  }
+
+out:
+  VfsTrace( -1, Dbg, ("get_link -> %p\n", ret ));
+
+  return ret;
+}
 #endif
 
 ///////////////////////////////////////////////////////////
@@ -8082,14 +8125,15 @@ ufsd_follow_link(
 //
 // inode_operations::put_link
 ///////////////////////////////////////////////////////////
-#if defined HAVE_DECL_FOLLOW_LINK_V1 && HAVE_DECL_FOLLOW_LINK_V1
+#if defined HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK && HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK
+#if defined HAVE_DECL_PUT_LINK_V1 && HAVE_DECL_PUT_LINK_V1
 static void
 ufsd_put_link(
     IN struct dentry    *de,
     IN struct nameidata *nd,
     IN void             *cookie
     )
-#elif defined HAVE_DECL_FOLLOW_LINK_V2 && HAVE_DECL_FOLLOW_LINK_V2
+#elif defined HAVE_DECL_PUT_LINK_V2 && HAVE_DECL_PUT_LINK_V2
 static void
 ufsd_put_link(
     IN struct inode     *i,
@@ -8099,19 +8143,34 @@ ufsd_put_link(
 {
   kfree( cookie );
 }
+#endif // #if defined HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK && HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK
 
 static const struct inode_operations ufsd_link_inode_operations_ufsd = {
   .readlink    = ufsd_readlink,
-  .follow_link = ufsd_follow_link,
+#if defined HAVE_STRUCT_INODE_OPERATIONS_GET_LINK && HAVE_STRUCT_INODE_OPERATIONS_GET_LINK
+  .get_link    = ufsd_get_link,
+#endif
+#if defined HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK && HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK
   .put_link    = ufsd_put_link,
+#endif
+#if defined HAVE_STRUCT_INODE_OPERATIONS_FOLLOW_LINK && HAVE_STRUCT_INODE_OPERATIONS_FOLLOW_LINK
+  .follow_link = ufsd_follow_link,
+#endif
 };
 #endif // #if defined UFSD_NTFS || defined UFSD_EXFAT || defined UFSD_REFS2 || defined UFSD_FAT
 
 #ifdef UFSD_HFS
 static const struct inode_operations ufsd_link_inode_operations_u8 = {
   .readlink    = generic_readlink,
-  .follow_link = page_follow_link_light,
+#if defined HAVE_STRUCT_INODE_OPERATIONS_GET_LINK && HAVE_STRUCT_INODE_OPERATIONS_GET_LINK
+  .get_link    = page_get_link,
+#endif
+#if defined HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK && HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK
   .put_link    = page_put_link,
+#endif
+#if defined HAVE_STRUCT_INODE_OPERATIONS_FOLLOW_LINK && HAVE_STRUCT_INODE_OPERATIONS_FOLLOW_LINK
+  .follow_link = page_follow_link_light,
+#endif
 };
 #endif
 
@@ -8202,7 +8261,7 @@ static void
 ufsd_end_io_read(
     IN struct bio *bio
 #ifdef BIO_UPTODATE
-    , IN int        err
+  , IN int        err
 #endif
     )
 {

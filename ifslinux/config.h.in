@@ -130,6 +130,12 @@
 /* const char * (*follow_link) (struct dentry *, void **); */
 #undef HAVE_DECL_FOLLOW_LINK_V2
 
+/* void (*put_link) (struct dentry *, struct nameidata *, void *); */
+#undef HAVE_DECL_PUT_LINK_V1
+
+/* void (*put_link) (struct inode *, void *); */
+#undef HAVE_DECL_PUT_LINK_V2
+
 /* int (*fsync) (struct file *, struct dentry *, int datasync); */
 #undef HAVE_DECL_FO_FSYNC_V1
 
@@ -380,6 +386,15 @@
 
 /* Define to 1 if `set_acl' is a member of `struct inode_operations'. */
 #undef HAVE_STRUCT_INODE_OPERATIONS_SET_ACL
+
+/* Define to 1 if `get_link' is a member of `struct inode_operations'. */
+#undef HAVE_STRUCT_INODE_OPERATIONS_GET_LINK
+
+/* Define to 1 if `put_link' is a member of `struct inode_operations'. */
+#undef HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK
+
+/* Define to 1 if `follow_link' is a member of `struct inode_operations'. */
+#undef HAVE_STRUCT_INODE_OPERATIONS_FOLLOW_LINK
 
 /* Define to 1 if `ki_flags' is a member of `struct kiocb'. */
 #undef HAVE_STRUCT_KIOCB_KI_FLAGS

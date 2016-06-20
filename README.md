@@ -6,7 +6,7 @@ You will need a LibUFSD binary blob for your architecture to build this driver. 
 
 ## License
 
-[End-user License Agreement for Paragon Software Products](https://github.com/ondr3j/paragon-ufsd/master/License.txt)
+[End-user License Agreement for Paragon Software Products](https://github.com/ondr3j/paragon-ufsd/blob/master/License.txt)
 
 ## Prerequisites
 

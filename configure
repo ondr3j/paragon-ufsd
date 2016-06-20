@@ -4562,6 +4562,42 @@ _ACEOF
 fi
 
 
+ac_fn_c_check_member "$LINENO" "struct inode_operations" "get_link" "ac_cv_member_struct_inode_operations_get_link" "#include <linux/fs.h>
+"
+if test "x$ac_cv_member_struct_inode_operations_get_link" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_INODE_OPERATIONS_GET_LINK 1
+_ACEOF
+
+
+fi
+
+
+ac_fn_c_check_member "$LINENO" "struct inode_operations" "put_link" "ac_cv_member_struct_inode_operations_put_link" "#include <linux/fs.h>
+"
+if test "x$ac_cv_member_struct_inode_operations_put_link" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_INODE_OPERATIONS_PUT_LINK 1
+_ACEOF
+
+
+fi
+
+
+ac_fn_c_check_member "$LINENO" "struct inode_operations" "follow_link" "ac_cv_member_struct_inode_operations_follow_link" "#include <linux/fs.h>
+"
+if test "x$ac_cv_member_struct_inode_operations_follow_link" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_STRUCT_INODE_OPERATIONS_FOLLOW_LINK 1
+_ACEOF
+
+
+fi
+
+
 ac_fn_c_check_member "$LINENO" "struct file_operations" "fallocate" "ac_cv_member_struct_file_operations_fallocate" "#include <linux/fs.h>
 "
 if test "x$ac_cv_member_struct_file_operations_fallocate" = xyes; then :
@@ -7421,6 +7457,86 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_FOLLOW_LINK}" >&5
 $as_echo "${HAVE_DECL_FOLLOW_LINK}" >&6; }
+
+
+# Checking version of put_link
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking put_link" >&5
+$as_echo_n "checking put_link... " >&6; }
+HAVE_DECL_PUT_LINK="Unknown"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+static void
+ufsd_put_link(
+    struct dentry* d,
+    struct nameidata* n,
+    void* c
+    )
+{
+}
+
+int
+main ()
+{
+
+static struct inode_operations ufsd_iops = {
+  .put_link = ufsd_put_link,
+};
+sizeof(ufsd_iops);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_PUT_LINK_V1 1" >>confdefs.h
+ HAVE_DECL_PUT_LINK="V1"
+else
+
+$as_echo "#define HAVE_DECL_PUT_LINK_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+static void
+ufsd_put_link(
+    struct inode* i,
+    void* c
+    )
+{
+}
+
+int
+main ()
+{
+
+static struct inode_operations ufsd_iops = {
+  .put_link = ufsd_put_link,
+};
+sizeof(ufsd_iops);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_PUT_LINK_V2 1" >>confdefs.h
+ HAVE_DECL_PUT_LINK="V2"
+else
+
+$as_echo "#define HAVE_DECL_PUT_LINK_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_PUT_LINK}" >&5
+$as_echo "${HAVE_DECL_PUT_LINK}" >&6; }
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
