@@ -335,6 +335,10 @@
    don't. */
 #undef HAVE_DECL___VFS_WRITE
 
+/* Define to 1 if you have the declaration of `get_user_pages_remote', and to 0 if you
+   don't. */
+#undef HAVE_DECL_GET_USER_PAGES_REMOTE
+
 /* Define to 1 if you have the <generated/compile.h> header file. */
 #undef HAVE_GENERATED_COMPILE_H
 

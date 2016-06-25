@@ -1617,9 +1617,9 @@ ufsd_bd_read_ahead(
   //
   struct address_space *mapping = sb->s_bdev->bd_inode->i_mapping;
   usuper    *sbi  = UFSD_SB( sb );
-  pgoff_t start   = offset >> PAGE_CACHE_SHIFT;
-  pgoff_t end     = (offset + bytes) >> PAGE_CACHE_SHIFT;
-  pgoff_t end_dev = sbi->dev_size >> PAGE_CACHE_SHIFT;
+  pgoff_t start   = offset >> PAGE_SHIFT;
+  pgoff_t end     = (offset + bytes) >> PAGE_SHIFT;
+  pgoff_t end_dev = sbi->dev_size >> PAGE_SHIFT;
   struct list_head page_pool;
   unsigned long nr_pages, nr_anon, nr_free, max_ra;
   struct blk_plug plug;
@@ -1629,7 +1629,7 @@ ufsd_bd_read_ahead(
   max_ra  = ( nr_anon + nr_free ) >> 1;
 
   if ( 0 != sbi->options.raKb ) {
-    unsigned long ra = sbi->options.raKb >> ( PAGE_CACHE_SHIFT-10 );
+    unsigned long ra = sbi->options.raKb >> ( PAGE_SHIFT-10 );
     if ( max_ra > ra )
       max_ra = ra;
   }
@@ -1705,7 +1705,7 @@ ufsd_bd_read_ahead(
 
   DebugTrace( 0, UFSD_LEVEL_IO, ("bd_read_ahead -> %lx\n", nr_pages ));
 //  printk( KERN_WARNING QUOTED_UFSD_DEVICE" bd_read_ahead -> %lx\n", nr_pages );
-  return nr_pages << PAGE_CACHE_SHIFT;
+  return nr_pages << PAGE_SHIFT;
 }
 #endif // #ifdef UFSD_TURN_OFF_READAHEAD
 
@@ -1731,7 +1731,7 @@ ufsd_bd_unmap_meta(
   sector_t  devblock        = offset >> sb->s_blocksize_bits;
   unsigned long nBlocks     = bytes >> sb->s_blocksize_bits;
   unsigned long cnt         = 0;
-  unsigned long limit       = global_page_state( NR_FREE_PAGES ) << (PAGE_CACHE_SHIFT - sb->s_blocksize_bits);
+  unsigned long limit       = global_page_state( NR_FREE_PAGES ) << (PAGE_SHIFT - sb->s_blocksize_bits);
 
   if ( limit >= 0x2000 )
     limit -= 0x1000;
@@ -2318,7 +2318,7 @@ ufsd_bd_set_blocksize(
 {
   usuper *sbi = UFSD_SB( sb );
 
-  if ( BytesPerBlock <= PAGE_CACHE_SIZE ) {
+  if ( BytesPerBlock <= PAGE_SIZE ) {
     sb_set_blocksize( sb, BytesPerBlock );
     sbi->max_block      = sb->s_bdev->bd_inode->i_size >> sb->s_blocksize_bits;
   }
@@ -2839,7 +2839,7 @@ ufsd_get_page0(
   struct page *page = find_lock_page( i->i_mapping, 0 );
   if ( NULL != page ) {
     unsigned ret;
-    if ( bytes > PAGE_CACHE_SIZE || !PageUptodate( page ) )
+    if ( bytes > PAGE_SIZE || !PageUptodate( page ) )
       ret = 0;
     else if ( page_has_buffers( page ) && !try_to_release_page( page, 0 ) ) {
       DebugTrace( 0, Dbg, ("**** !ufsd_get_page0 r=%lx, %x, pf=%lx\n", i->i_ino, bytes, page->flags ));
@@ -2870,7 +2870,7 @@ ufsd_get_page0(
     }
 
     unlock_page( page );
-    page_cache_release( page );
+    put_page( page );
     return ret;
   }
 
@@ -4270,8 +4270,8 @@ ufsd_block_truncate_page(
 {
   int err = 0;
   struct super_block *sb = u->i.i_sb;
-  pgoff_t index       = from >> PAGE_CACHE_SHIFT;
-  unsigned offset     = from & (PAGE_CACHE_SIZE-1);
+  pgoff_t index       = from >> PAGE_SHIFT;
+  unsigned offset     = from & (PAGE_SIZE-1);
   unsigned blocksize  = sb->s_blocksize;
   unsigned blkbits    = sb->s_blocksize_bits;
   unsigned vblock     = offset >> blkbits;
@@ -4302,7 +4302,7 @@ ufsd_block_truncate_page(
     //
     // map to read
     //
-    if ( unlikely( vbo_to_lbo( UFSD_SB( sb ), u, ((loff_t)index << PAGE_CACHE_SHIFT) + bh_off, 0, &map ) ) )
+    if ( unlikely( vbo_to_lbo( UFSD_SB( sb ), u, ((loff_t)index << PAGE_SHIFT) + bh_off, 0, &map ) ) )
       goto unlock;
 
     if ( !is_lbo_ok( map.lbo ) || 0 == map.len )
@@ -4335,7 +4335,7 @@ ufsd_block_truncate_page(
 
 unlock:
   unlock_page( page );
-  page_cache_release( page );
+  put_page( page );
 
   DebugTrace( -1, Dbg, ("block_truncate_page -> %d\n", err ) );
   return err;
@@ -6168,8 +6168,8 @@ ufsd_extend_initialized_size(
   BUG_ON( valid >= new_valid );
 
   for ( ;; ) {
-    unsigned zerofrom = pos & ~PAGE_CACHE_MASK;
-    unsigned len      = PAGE_CACHE_SIZE - zerofrom;
+    unsigned zerofrom = pos & ~PAGE_MASK;
+    unsigned len      = PAGE_SIZE - zerofrom;
     struct page *page;
     void *fsdata;
 
@@ -6185,7 +6185,7 @@ ufsd_extend_initialized_size(
     if ( err )
       goto error;
 
-    zero_user_segment( page, zerofrom, PAGE_CACHE_SIZE );
+    zero_user_segment( page, zerofrom, PAGE_SIZE );
 
     err = pagecache_write_end( file, mapping, pos, len, len, page, fsdata );
     if ( err < 0 )
@@ -6562,7 +6562,7 @@ __ufsd_file_write_iter(
     err = filemap_write_and_wait_range( mapping, pos, endbyte );
     if ( 0 == err ) {
       written += status;
-      invalidate_mapping_pages( mapping, pos >> PAGE_CACHE_SHIFT, endbyte >> PAGE_CACHE_SHIFT );
+      invalidate_mapping_pages( mapping, pos >> PAGE_SHIFT, endbyte >> PAGE_SHIFT );
     }
   } else {
 
@@ -6597,7 +6597,7 @@ __ufsd_file_write_iter(
     if ( 0 == err ) {
       iocb->ki_pos = endbyte + 1;
       written += status;
-      invalidate_mapping_pages( mapping, pos >> PAGE_CACHE_SHIFT, endbyte >> PAGE_CACHE_SHIFT );
+      invalidate_mapping_pages( mapping, pos >> PAGE_SHIFT, endbyte >> PAGE_SHIFT );
     } else {
       //
       // We don't know how much we wrote, so just return
@@ -6621,7 +6621,7 @@ out2:
   if ( unlikely( 0 != written ) ) {
     err = written;
 #ifdef Try_to_writeback_inodes_sb
-    if ( unlikely( sbi->options.wb && written >= PAGE_CACHE_SIZE ) ) {
+    if ( unlikely( sbi->options.wb && written >= PAGE_SIZE ) ) {
       if ( atomic_dec_and_test( &sbi->writeiter_cnt ) ) {
         Try_to_writeback_inodes_sb( sb );
         atomic_set( &sbi->writeiter_cnt, sbi->options.wb );
@@ -7046,7 +7046,7 @@ end_cycle:
     err = filemap_write_and_wait_range( mapping, pos, endbyte );
     if ( 0 == err ) {
       written = written_buffered;
-      invalidate_mapping_pages( mapping, pos >> PAGE_CACHE_SHIFT, endbyte >> PAGE_CACHE_SHIFT );
+      invalidate_mapping_pages( mapping, pos >> PAGE_SHIFT, endbyte >> PAGE_SHIFT );
     } else {
       //
       // We don't know how much we wrote, so just return
@@ -7067,7 +7067,7 @@ out2:
   if ( unlikely( 0 != written ) ) {
     err = written;
 #ifdef Try_to_writeback_inodes_sb
-    if ( unlikely( sbi->options.wb && written >= PAGE_CACHE_SIZE ) ) {
+    if ( unlikely( sbi->options.wb && written >= PAGE_SIZE ) ) {
       if ( atomic_dec_and_test( &sbi->writeiter_cnt ) ) {
         Try_to_writeback_inodes_sb( i->i_sb );
         atomic_set( &sbi->writeiter_cnt, sbi->options.wb );
@@ -7265,7 +7265,7 @@ ufsd_filemap_fault(
 
   if ( VM_FAULT_LOCKED & err ) {
     // Update maximum mapped range
-    vd->to = max_t( loff_t, vd->to, (loff_t)(vmf->pgoff + 1) << PAGE_CACHE_SHIFT );
+    vd->to = max_t( loff_t, vd->to, (loff_t)(vmf->pgoff + 1) << PAGE_SHIFT );
   }
 
   return err;
@@ -7286,7 +7286,7 @@ ufsd_file_mmap(
   int err;
   struct inode *i   = file_inode( file );
   unode *u          = UFSD_U( i );
-  UINT64 from       = ((UINT64)vma->vm_pgoff << PAGE_CACHE_SHIFT);
+  UINT64 from       = ((UINT64)vma->vm_pgoff << PAGE_SHIFT);
   ufsd_vma_data *vd;
 
   assert( from < i->i_size );
@@ -7608,13 +7608,13 @@ ufsd_splice_write_from_socket(
   idx = 0;      // number of pages
   tmp = count;  // save original 'count' to use later
   do {
-    unsigned offset = pos & (PAGE_CACHE_SIZE - 1);
-    unsigned bytes  = PAGE_CACHE_SIZE - offset;
+    unsigned offset = pos & (PAGE_SIZE - 1);
+    unsigned bytes  = PAGE_SIZE - offset;
     if ( bytes > count )
       bytes = count;
 
     if ( pos < valid && 0 != offset ) {
-      page = read_mapping_page( mapping, pos >> PAGE_CACHE_SHIFT, NULL );
+      page = read_mapping_page( mapping, pos >> PAGE_SHIFT, NULL );
 
       if ( unlikely( IS_ERR( page ) ) ) {
         err = PTR_ERR( page );
@@ -7623,7 +7623,7 @@ Error:
         goto unmap_all;
       } else if ( unlikely( PageError( page ) ) ) {
         err = -EIO;
-        page_cache_release( page );
+        put_page( page );
         goto Error;
       }
 
@@ -7631,12 +7631,12 @@ Error:
 
       if ( unlikely( page->mapping != mapping ) ) {
         unlock_page( page );
-        page_cache_release( page );
+        put_page( page );
         continue;
       }
     } else {
       //pos >= valid || 0 == offset
-      page = grab_cache_page_write_begin( mapping, pos >> PAGE_CACHE_SHIFT, AOP_FLAG_UNINTERRUPTIBLE|AOP_FLAG_NOFS );
+      page = grab_cache_page_write_begin( mapping, pos >> PAGE_SHIFT, AOP_FLAG_UNINTERRUPTIBLE|AOP_FLAG_NOFS );
       if ( unlikely( NULL == page ) ) {
         ufsd_printk( i->i_sb, "failed to allocate page cache page for inode 0x%lx at start 0x%llx.\n", i->i_ino, pos );
         err = -ENOMEM;
@@ -7710,7 +7710,7 @@ unmap_all:
     kunmap( page );
     flush_dcache_page( page );
     unlock_page( page );
-    page_cache_release( page );
+    put_page( page );
   }
 
 #ifdef Try_to_writeback_inodes_sb
@@ -7732,7 +7732,7 @@ done:
   kfree( pages );
 
 #ifdef Try_to_writeback_inodes_sb
-  if ( unlikely( sbi->options.wb && count >= PAGE_CACHE_SIZE ) ) {
+  if ( unlikely( sbi->options.wb && count >= PAGE_SIZE ) ) {
     if ( atomic_dec_and_test( &sbi->writeiter_cnt ) ) {
       Try_to_writeback_inodes_sb( i->i_sb );
       atomic_set( &sbi->writeiter_cnt, sbi->options.wb );
@@ -8205,7 +8205,7 @@ ufsd_end_buffer_async_read(
 #else
     unode *u           = UFSD_U( i );
     unsigned bh_off    = bh_offset( bh );
-    loff_t buffer_off  = bh_off + ((loff_t)page->index << PAGE_CACHE_SHIFT);
+    loff_t buffer_off  = bh_off + ((loff_t)page->index << PAGE_SHIFT);
     loff_t i_size, valid = get_valid_size( u, &i_size, NULL );
     if ( valid > i_size )
       valid = i_size;
@@ -8285,14 +8285,14 @@ ufsd_end_io_read(
     struct page *page = bvec->bv_page;
     if ( !err ) {
       unsigned long flags;
-      loff_t page_off = (loff_t)page->index << PAGE_CACHE_SHIFT;
+      loff_t page_off = (loff_t)page->index << PAGE_SHIFT;
       loff_t i_size, valid = get_valid_size( u, &i_size, NULL );
       if ( valid > i_size )
         valid = i_size;
 
-      if ( page_off + PAGE_CACHE_SIZE > valid ) {
+      if ( page_off + PAGE_SIZE > valid ) {
         local_irq_save( flags );
-        zero_user_segment( page, valid > page_off? valid - page_off : 0, PAGE_CACHE_SIZE );
+        zero_user_segment( page, valid > page_off? valid - page_off : 0, PAGE_SIZE );
         local_irq_restore( flags );
       }
       SetPageUptodate( page );
@@ -8444,7 +8444,7 @@ ufsd_read_ntfs_file(
   size_t ret;
   int err;
   char* kaddr;
-  unsigned from = vbo & ~PAGE_CACHE_MASK;
+  unsigned from = vbo & ~PAGE_MASK;
 
   //
   // Read file via UFSD -> ufsd_bd_read
@@ -8454,10 +8454,10 @@ ufsd_read_ntfs_file(
   lock_ufsd( sbi );
 
   kaddr = kmap( page );
-  err   = ufsdapi_file_read( sbi->ufsd, u->ufile, NULL, 0, vbo - from, PAGE_CACHE_SIZE, kaddr, &ret );
+  err   = ufsdapi_file_read( sbi->ufsd, u->ufile, NULL, 0, vbo - from, PAGE_SIZE, kaddr, &ret );
   if ( likely( 0 == err ) ) {
-    if ( ret < PAGE_CACHE_SIZE )
-      memset( kaddr + ret, 0, PAGE_CACHE_SIZE - ret );
+    if ( ret < PAGE_SIZE )
+      memset( kaddr + ret, 0, PAGE_SIZE - ret );
     SetPageUptodate( page );
   } else {
     ret = err;
@@ -8500,7 +8500,7 @@ ufsd_write_ntfs_file(
   if ( vbo <= i_size ) {
     size_t written;
     char* kaddr;
-    unsigned from = vbo & ~PAGE_CACHE_MASK;
+    unsigned from = vbo & ~PAGE_MASK;
     if ( vbo + len > i_size )
       len = i_size - vbo;
 
@@ -8542,7 +8542,7 @@ ufsd_buf_readpage(
   loff_t i_size   = i_size_read( i );
   int err         = 0;
 
-  assert( page_off == ((loff_t)page->index << PAGE_CACHE_SHIFT) );
+  assert( page_off == ((loff_t)page->index << PAGE_SHIFT) );
   assert( !is_compressed( u ) );
 
   DebugTrace( +1, UFSD_LEVEL_PAGE_RW, ("buf_readpage: r=%lx, %llx, sz=%llx,%llx\n", i->i_ino, page_off, u->valid, i_size ));
@@ -8552,9 +8552,9 @@ ufsd_buf_readpage(
   BUG_ON( !PageLocked( page ) );
 
 #ifndef UFSD_USE_BH
-  if ( unlikely( page->index >= ( i_size + PAGE_CACHE_SIZE - 1 ) >> PAGE_CACHE_SHIFT ) ) {
+  if ( unlikely( page->index >= ( i_size + PAGE_SIZE - 1 ) >> PAGE_SHIFT ) ) {
 //Zero:
-    zero_user_segment( page, 0, PAGE_CACHE_SIZE );
+    zero_user_segment( page, 0, PAGE_SIZE );
     SetPageUptodate( page );
     unlock_page( page );
     DebugTrace( -1, UFSD_LEVEL_PAGE_RW, ("buf_readpage (zero) -> ok\n" ));
@@ -8638,10 +8638,10 @@ zero_buf:
 
             SetPageUptodate( page );
 
-            if ( page_off + PAGE_CACHE_SIZE > i_size ) {
+            if ( page_off + PAGE_SIZE > i_size ) {
               unsigned long flags;
               local_irq_save( flags );
-              zero_user_segment( page, i_size > page_off? i_size - page_off : 0, PAGE_CACHE_SIZE );
+              zero_user_segment( page, i_size > page_off? i_size - page_off : 0, PAGE_SIZE );
               local_irq_restore( flags );
             }
   //          set_buffer_uptodate( bh );
@@ -8732,7 +8732,7 @@ ufsd_do_readpage(
   struct inode *i = page->mapping->host;
   unode *u        = UFSD_U( i );
   usuper *sbi     = UFSD_SB( i->i_sb );
-  loff_t page_off = (loff_t)page->index << PAGE_CACHE_SHIFT;
+  loff_t page_off = (loff_t)page->index << PAGE_SHIFT;
   mapinfo map;
 
   DebugTrace( +1, UFSD_LEVEL_PAGE_RW, ("do_readpage: r=%lx, o=%llx, sz=%llx,%llx\n", i->i_ino, page_off, u->valid, i->i_size ));
@@ -8774,7 +8774,7 @@ UseUfsd:
 #ifdef UFSD_NTFS
       if ( is_ntfs( &sbi->options ) ) {
         if ( UFSD_VBO_LBO_HOLE == map.lbo ) {
-          if ( map.len >= PAGE_CACHE_SIZE )
+          if ( map.len >= PAGE_SIZE )
             goto zero;
         } else if ( UFSD_VBO_LBO_RESIDENT == map.lbo )
           goto UseUfsd;
@@ -8788,7 +8788,7 @@ UseUfsd:
       //
       // Check page for continues
       //
-      if ( map.len < PAGE_CACHE_SIZE ) {
+      if ( map.len < PAGE_SIZE ) {
 #ifdef UFSD_NTFS
         if ( UFSD_VBO_LBO_HOLE == map.lbo && page_off + map.len >= valid ) {
           DebugTrace( 0, UFSD_LEVEL_PAGE_RW, ("do_readpage - zero page\n" ));
@@ -8799,19 +8799,19 @@ UseUfsd:
         goto confused;
       }
 
-      if ( page_off + PAGE_CACHE_SIZE > valid ) {
+      if ( page_off + PAGE_SIZE > valid ) {
 //        bh_off  = valid - page_off;
-        zero_user_segment( page, valid - page_off, PAGE_CACHE_SIZE );
+        zero_user_segment( page, valid - page_off, PAGE_SIZE );
       } else {
-//        bh_off  = PAGE_CACHE_SIZE;
+//        bh_off  = PAGE_SIZE;
       }
-      bh_off  = PAGE_CACHE_SIZE;
+      bh_off  = PAGE_SIZE;
       start_lbo = map.lbo;
     } else {
 #ifdef UFSD_NTFS
 zero:
 #endif
-      zero_user_segment( page, 0, PAGE_CACHE_SIZE );
+      zero_user_segment( page, 0, PAGE_SIZE );
       SetPageUptodate( page );
       unlock_page( page );
       ProfileLeave( sbi, do_readpage );
@@ -8853,8 +8853,8 @@ alloc_new:
       goto alloc_new;
     }
 
-    if ( PAGE_CACHE_SIZE == bh_off ) {
-      mpage->next_lbo = start_lbo + PAGE_CACHE_SIZE;
+    if ( PAGE_SIZE == bh_off ) {
+      mpage->next_lbo = start_lbo + PAGE_SIZE;
       DebugTrace( -1, UFSD_LEVEL_PAGE_RW, ("do_readpage -> ok, next=%llx\n", mpage->next_lbo ));
     } else {
       ufsd_bio_read_submit( mpage->bio );
@@ -8906,7 +8906,7 @@ ufsd_readpage(
 
   ProfileEnter( sbi, readpage );
 
-  DebugTrace( +1, UFSD_LEVEL_PAGE_RW, ("readpage: r=%lx, o=%llx\n", i->i_ino, (UINT64)page->index << PAGE_CACHE_SHIFT ));
+  DebugTrace( +1, UFSD_LEVEL_PAGE_RW, ("readpage: r=%lx, o=%llx\n", i->i_ino, (UINT64)page->index << PAGE_SHIFT ));
 
   err = ufsd_do_readpage( page, 1, &mpage );
   if ( NULL != mpage.bio )
@@ -8942,7 +8942,7 @@ ufsd_buf_writepage(
   struct inode *i   = &u->i;
   loff_t i_size     = i_size_read( i );
   pgoff_t index     = page->index;
-  pgoff_t end_index = i_size >> PAGE_CACHE_SHIFT;
+  pgoff_t end_index = i_size >> PAGE_SHIFT;
   struct super_block *sb = i->i_sb;
   unsigned blkbits    = i->i_blkbits;
   unsigned blocksize  = 1 << blkbits;
@@ -8950,7 +8950,7 @@ ufsd_buf_writepage(
   loff_t vbo;
   int err = 0, all_done;
 
-  assert( page_off == ((loff_t)index << PAGE_CACHE_SHIFT) );
+  assert( page_off == ((loff_t)index << PAGE_SHIFT) );
   assert( !is_compressed( u ) );
 
   DebugTrace( +1, UFSD_LEVEL_PAGE_RW, ("buf_writepage: o=%llx, sz=%llx,%llx\n", page_off, u->valid, i_size ));
@@ -8960,12 +8960,12 @@ ufsd_buf_writepage(
   BUG_ON( !PageLocked( page ) );
 
   if ( unlikely( index >= end_index ) ) {
-    unsigned offset = i_size & (PAGE_CACHE_SIZE-1);
+    unsigned offset = i_size & (PAGE_SIZE-1);
     if ( unlikely( index >= end_index+1 || !offset ) ) {
 #if defined HAVE_DECL_BLOCK_INVALIDATEPAGE_V1 && HAVE_DECL_BLOCK_INVALIDATEPAGE_V1
       block_invalidatepage( page, 0 );
 #elif defined HAVE_DECL_BLOCK_INVALIDATEPAGE_V2 && HAVE_DECL_BLOCK_INVALIDATEPAGE_V2
-      block_invalidatepage( page, 0, PAGE_CACHE_SIZE );
+      block_invalidatepage( page, 0, PAGE_SIZE );
 #else
 #error "Unknown block_invalidatepage"
 #endif
@@ -8976,7 +8976,7 @@ ufsd_buf_writepage(
     }
 
     DebugTrace( 0, UFSD_LEVEL_PAGE_RW, ("buf_writepage - zero_user_segment from %x\n", offset ));
-    zero_user_segment( page, offset, PAGE_CACHE_SIZE );
+    zero_user_segment( page, offset, PAGE_SIZE );
   }
 
   //
@@ -9173,13 +9173,13 @@ ufsd_do_writepage(
   unsigned blkbits    = i->i_blkbits;
   unsigned blocksize  = 1 << blkbits;
   struct buffer_head *head, *bh;
-  unsigned first_unmapped = PAGE_CACHE_SIZE;  // assume that no mapped buffers
+  unsigned first_unmapped = PAGE_SIZE;  // assume that no mapped buffers
 //  int uptodate;
   unsigned bh_off = 0;
   int err;
   mapinfo map;
   loff_t i_size, valid = get_valid_size( u, &i_size, NULL );
-  loff_t page_off = (loff_t)page->index << PAGE_CACHE_SHIFT;
+  loff_t page_off = (loff_t)page->index << PAGE_SHIFT;
 
   DebugTrace( +1, UFSD_LEVEL_PAGE_RW, ("do_writepage(%s): r=%lx, o=%llx, sz=%llx,%llx\n", current->comm, i->i_ino, page_off, u->valid, i->i_size ));
 
@@ -9221,12 +9221,12 @@ ufsd_do_writepage(
 //        if ( !buffer_uptodate( bh ) )
 //          uptodate = 0;
         // Save the position of hole
-        if ( PAGE_CACHE_SIZE == first_unmapped )
+        if ( PAGE_SIZE == first_unmapped )
           first_unmapped = bh_off; // save the position of first unmapped buffer in page
         continue;
       }
 
-      if ( first_unmapped != PAGE_CACHE_SIZE ) {
+      if ( first_unmapped != PAGE_SIZE ) {
         DebugTrace( 0, UFSD_LEVEL_PAGE_RW, ("do_writepage confused(2) o=%llx v=%llx\n", vbo, valid ));
         goto confused;  // hole -> non-hole
       }
@@ -9273,7 +9273,7 @@ ufsd_do_writepage(
 
   } else {
 
-    unsigned towrite = (page_off + PAGE_CACHE_SIZE) > i_size? (i_size - page_off) : PAGE_CACHE_SIZE;
+    unsigned towrite = (page_off + PAGE_SIZE) > i_size? (i_size - page_off) : PAGE_SIZE;
 
 #ifdef UFSD_NTFS
     if ( is_compressed( u ) ) {
@@ -9336,13 +9336,13 @@ UseUfsd:
     //
     // Check page for continues
     //
-    if ( map.len < PAGE_CACHE_SIZE )
+    if ( map.len < PAGE_SIZE )
       goto confused;
 
-//    if ( vbo + PAGE_CACHE_SIZE > valid )
-//      set_valid_size( u, vbo + PAGE_CACHE_SIZE );
+//    if ( vbo + PAGE_SIZE > valid )
+//      set_valid_size( u, vbo + PAGE_SIZE );
     start_lbo = map.lbo;
-    bh_off    = PAGE_CACHE_SIZE;
+    bh_off    = PAGE_SIZE;
 #endif
   }
 
@@ -9406,8 +9406,8 @@ alloc_new:
   set_page_writeback( page );
   unlock_page( page );
 
-  if ( PAGE_CACHE_SIZE == bh_off ) {
-    mpage->next_lbo = start_lbo + PAGE_CACHE_SIZE;
+  if ( PAGE_SIZE == bh_off ) {
+    mpage->next_lbo = start_lbo + PAGE_SIZE;
     DebugTrace( -1, UFSD_LEVEL_PAGE_RW, ("do_writepage -> ok, next=%llx, sz=%llx,%llx\n", mpage->next_lbo, u->valid, i->i_size ));
   } else {
     ufsd_bio_write_submit( mpage->bio, sbi );
@@ -9453,7 +9453,7 @@ ufsd_writepage(
   upage_data mpage;
   int err;
 
-  DebugTrace( +1, Dbg, ("writepage: r=%lx, o=%llx\n", i->i_ino, (UINT64)page->index << PAGE_CACHE_SHIFT) );
+  DebugTrace( +1, Dbg, ("writepage: r=%lx, o=%llx\n", i->i_ino, (UINT64)page->index << PAGE_SHIFT) );
 
   ProfileEnter( sbi, writepage );
 
@@ -9501,10 +9501,10 @@ ufsd_write_begin(
   struct super_block *sb = i->i_sb;
   usuper *sbi   = UFSD_SB( sb );
   loff_t end    = pos + len;
-  unsigned from = pos & (PAGE_CACHE_SIZE - 1);
+  unsigned from = pos & (PAGE_SIZE - 1);
   unsigned to   = from + len;
   unsigned block_start;
-  loff_t page_off = pos & ~(loff_t)( PAGE_CACHE_SIZE - 1 );
+  loff_t page_off = pos & ~(loff_t)( PAGE_SIZE - 1 );
   const unsigned blkbits    = i->i_blkbits;
   const unsigned blocksize  = 1 << blkbits;
   loff_t vbo, i_size, valid, i_size0 = i->i_size; // save original size
@@ -9535,7 +9535,7 @@ ufsd_write_begin(
     unsigned long lockf;
     write_lock_irqsave( &u->rwlock, lockf );
     if ( 0 != atomic_read( &u->write_begin_end_cnt ) ) {
-      loff_t new_valid = page_off + PAGE_CACHE_SIZE;
+      loff_t new_valid = page_off + PAGE_SIZE;
       if ( new_valid > u->valid )
         u->valid = new_valid;
     }
@@ -9553,8 +9553,8 @@ ufsd_write_begin(
     mark_inode_dirty( i );
 
   // Do we really need to use 'AOP_FLAG_NOFS'?
-  //page = grab_cache_page_write_begin( mapping, pos >> PAGE_CACHE_SHIFT, flags | AOP_FLAG_NOFS );
-  page = grab_cache_page_write_begin( mapping, pos >> PAGE_CACHE_SHIFT, flags );
+  //page = grab_cache_page_write_begin( mapping, pos >> PAGE_SHIFT, flags | AOP_FLAG_NOFS );
+  page = grab_cache_page_write_begin( mapping, pos >> PAGE_SHIFT, flags );
 
   if ( unlikely( NULL == page ) ) {
     ufsd_printk( sb, "failed to allocate page cache page for inode 0x%lx at start 0x%llx.\n", i->i_ino, pos );
@@ -9582,7 +9582,7 @@ UseUfsd:
 
   if ( likely( !page_has_buffers( page ) ) ) {
 #ifndef UFSD_USE_BH
-    if ( likely( 0 == from && PAGE_CACHE_SIZE == to ) ) {
+    if ( likely( 0 == from && PAGE_SIZE == to ) ) {
       DebugTrace( 0, UFSD_LEVEL_WBWE, ("full page\n" ));
       goto ok;
     }
@@ -9733,8 +9733,8 @@ next_block:
       if ( valid < block_end + blocksize ) {
         unsigned start = valid > block_end? (valid - block_end) : 0;
         unsigned start_page = start + bh_offset( bh );
-        DebugTrace( 0, UFSD_LEVEL_WBWE, ( "write_begin - page_off=%llx, block_end=%llx, valid=%llx, zero_user_segment( %x, %lx )\n", page_off, block_end, valid, start_page, PAGE_CACHE_SIZE ));
-        zero_user_segment( page, start_page, PAGE_CACHE_SIZE );
+        DebugTrace( 0, UFSD_LEVEL_WBWE, ( "write_begin - page_off=%llx, block_end=%llx, valid=%llx, zero_user_segment( %x, %lx )\n", page_off, block_end, valid, start_page, PAGE_SIZE ));
+        zero_user_segment( page, start_page, PAGE_SIZE );
       }
     }
   }
@@ -9747,7 +9747,7 @@ ok:
   } else {
 unlock_page:
     unlock_page( page );
-    page_cache_release( page );
+    put_page( page );
 
 restore:
     ufsd_printk( sb, "write_begin failed for inode 0x%lx, [%llx + %x), size=%llx,%llx, error %d).\n", i->i_ino, pos, len, u->valid, i->i_size, err );
@@ -9797,7 +9797,7 @@ ufsd_write_end(
   unsigned long flags;
   int err         = copied >= len || PageUpt? copied : 0;
   loff_t end      = pos + err;
-  loff_t page_off = (loff_t)page->index << PAGE_CACHE_SHIFT;
+  loff_t page_off = (loff_t)page->index << PAGE_SHIFT;
 
   assert( copied == len ); // just to test
   assert( mutex_is_locked( &i->i_mutex ) );
@@ -9806,7 +9806,7 @@ ufsd_write_end(
   atomic_dec( &u->write_begin_end_cnt );
 
   assert( copied <= len );
-  assert( page->index == (pos >> PAGE_CACHE_SHIFT) );
+  assert( page->index == (pos >> PAGE_SHIFT) );
 
   DebugTrace( +1, UFSD_LEVEL_WBWE, ("write_end: r=%lx, pos=%llx,%x,%x s=%llx,%llx, pf=%lx\n",
               i->i_ino, pos, len, copied, u->valid, i->i_size, page->flags ));
@@ -9819,34 +9819,34 @@ ufsd_write_end(
   assert( NULL == file || !is_stream( file ) );
   if ( NULL != fsdata ) {
     size_t ret;
-    unsigned from   = pos & (PAGE_CACHE_SIZE-1);
+    unsigned from   = pos & (PAGE_SIZE-1);
     unsigned to     = from + len;
     char* kaddr     = kmap( page );
-    loff_t page_end = page_off + PAGE_CACHE_SIZE;
-    size_t towrite  = page_end > i->i_size? (i->i_size - page_off) : PAGE_CACHE_SIZE;
+    loff_t page_end = page_off + PAGE_SIZE;
+    size_t towrite  = page_end > i->i_size? (i->i_size - page_off) : PAGE_SIZE;
     assert( NULL != sbi->rw_buffer );
 
     lock_ufsd( sbi );
 
     if ( PageUpt )
       err = 0;
-    else if ( PAGE_CACHE_SIZE == len ) {
+    else if ( PAGE_SIZE == len ) {
       err = 0;
       SetPageUptodate( page );
     } else {
 
 //      DebugTrace( 0, UFSD_LEVEL_WBWE, ("ufsdapi_file_read( o=%llx )\n", page_off ));
-      err = ufsdapi_file_read( sbi->ufsd, u->ufile, NULL, 0, page_off, PAGE_CACHE_SIZE, sbi->rw_buffer, &ret );
+      err = ufsdapi_file_read( sbi->ufsd, u->ufile, NULL, 0, page_off, PAGE_SIZE, sbi->rw_buffer, &ret );
 
       if ( likely( 0 == err ) ) {
-        if ( ret < PAGE_CACHE_SIZE )
-          memset( sbi->rw_buffer + ret, 0, PAGE_CACHE_SIZE - ret );
+        if ( ret < PAGE_SIZE )
+          memset( sbi->rw_buffer + ret, 0, PAGE_SIZE - ret );
 
         //
         // Update page
         //
         memcpy( kaddr, sbi->rw_buffer, from );
-        memcpy( kaddr + to, sbi->rw_buffer + to, PAGE_CACHE_SIZE - to );
+        memcpy( kaddr + to, sbi->rw_buffer + to, PAGE_SIZE - to );
         SetPageUptodate( page );
 
       } else {
@@ -9866,7 +9866,7 @@ ufsd_write_end(
     if ( unlikely( 0 != err ) ) {
       SetPageError( page );
     } else {
-      if ( PAGE_CACHE_SIZE == towrite )
+      if ( PAGE_SIZE == towrite )
         ClearPageDirty( page ); //clear page dirty so that writepages wouldn't work for us
 
       if ( unlikely( page_has_buffers( page ) ) ) {
@@ -9932,7 +9932,7 @@ ufsd_write_end(
   write_unlock_irqrestore( &u->rwlock, flags );
 
   unlock_page( page );
-  page_cache_release( page );
+  put_page( page );
 
   if ( i_size_changed )
     mark_inode_dirty( i );
@@ -10003,7 +10003,7 @@ ufsd_readpages(
       lru_cache_add_file( page );
     }
 
-    page_cache_release( page );
+    put_page( page );
   }
 
   BUG_ON( !list_empty( pages ) );
@@ -10121,7 +10121,7 @@ ufsd_releasepage(
     )
 {
   struct address_space * const mapping = page->mapping;
-  loff_t o = (loff_t)page->index << PAGE_CACHE_SHIFT;
+  loff_t o = (loff_t)page->index << PAGE_SHIFT;
   int ret = try_to_free_buffers( page );
   if ( NULL == mapping || NULL ==  mapping->host ) {
     DebugTrace( 0, Dbg, ("releasepage: o=%llx -> %d\n", o, ret ));
@@ -10143,7 +10143,7 @@ ufsd_freepage(
     )
 {
   struct address_space * const mapping = page->mapping;
-  loff_t o = (loff_t)page->index << PAGE_CACHE_SHIFT;
+  loff_t o = (loff_t)page->index << PAGE_SHIFT;
   if ( NULL == mapping || NULL == mapping->host ) {
     DebugTrace( 0, Dbg, ("freepage: o=%llx\n", o ));
   } else {
@@ -10419,7 +10419,7 @@ ufsd_direct_IO(
     }
 
     for ( ;; ) {
-      size_t nr_pages = ((uaddr + len + PAGE_CACHE_SIZE - 1) >> PAGE_CACHE_SHIFT) - (uaddr >> PAGE_CACHE_SHIFT);
+      size_t nr_pages = ((uaddr + len + PAGE_SIZE - 1) >> PAGE_SHIFT) - (uaddr >> PAGE_SHIFT);
 
       while( nr_pages ) {
         long page_idx, mapped_pages;
@@ -10427,7 +10427,15 @@ ufsd_direct_IO(
         unsigned off_in_page;
 
         down_read( &current->mm->mmap_sem );
-        mapped_pages = get_user_pages( current, current->mm, uaddr, min_t( unsigned long, nr_pages, 64 ), 1, 0, pages, 0 );
+        mapped_pages =
+#if defined HAVE_DECL_GET_USER_PAGES_REMOTE && HAVE_DECL_GET_USER_PAGES_REMOTE
+        get_user_pages_remote
+#else
+        get_user_pages
+#endif
+        (
+          current, current->mm, uaddr, min_t( unsigned long, nr_pages, 64 ), 1, 0, pages, 0 
+        );
         up_read( &current->mm->mmap_sem );
 
         if ( unlikely( mapped_pages <= 0 ) ) {
@@ -10437,12 +10445,12 @@ ufsd_direct_IO(
         }
 
         nr_pages   -= mapped_pages;
-        off_in_page = uaddr & ~PAGE_CACHE_MASK;
-        to_zero     = (mapped_pages << PAGE_CACHE_SHIFT) - off_in_page;
+        off_in_page = uaddr & ~PAGE_MASK;
+        to_zero     = (mapped_pages << PAGE_SHIFT) - off_in_page;
 
         for ( page_idx = 0; page_idx < mapped_pages; page_idx++ ) {
           struct page *page = pages[page_idx];
-          unsigned tail     = PAGE_CACHE_SIZE - off_in_page;
+          unsigned tail     = PAGE_SIZE - off_in_page;
           assert( 0 != len );
           if ( tail > len )
             tail = len;
@@ -10453,15 +10461,15 @@ ufsd_direct_IO(
           //
           // Zero full page after 'i_size'
           //
-          zero_user_segment( page, off_in_page, offset >= i_size? PAGE_CACHE_SIZE : off_in_page + tail );
+          zero_user_segment( page, off_in_page, offset >= i_size? PAGE_SIZE : off_in_page + tail );
 
           if ( offset >= i_size ) {
             ret -= offset - i_size;
             while( page_idx < mapped_pages )
-              page_cache_release( pages[page_idx++] );
+              put_page( pages[page_idx++] );
             goto end_zero;
           }
-          page_cache_release( page );
+          put_page( page );
           off_in_page  = 0;
           len -= tail;
         }
@@ -12224,7 +12232,7 @@ ufsd_remount(
 #endif
 
   if ( sbi->options.raKb )
-    sb->s_bdi->ra_pages = sbi->options.raKb >> ( PAGE_CACHE_SHIFT-10 );
+    sb->s_bdi->ra_pages = sbi->options.raKb >> ( PAGE_SHIFT-10 );
 
   if ( Ro )
     sb->s_flags |= MS_RDONLY;
@@ -13344,7 +13352,7 @@ ufsd_fill_super(
   //
   // Check for size
   //
-  if ( sb_size <= 10*PAGE_CACHE_SIZE ) {
+  if ( sb_size <= 10*PAGE_SIZE ) {
     printk( KERN_WARNING QUOTED_UFSD_DEVICE": \"%s\": the volume size (0x%llx bytes) is too small to keep any fs\n", sb->s_id, sb_size );
     TRACE_ONLY( hint = "too small"; )
     goto ExitInc;
@@ -13390,9 +13398,9 @@ ufsd_fill_super(
   if ( FlagOn( sb->s_flags, MS_SYNCHRONOUS ) )
     sbi->options.sync = 1;
 
-  sb_set_blocksize( sb, PAGE_CACHE_SIZE );
+  sb_set_blocksize( sb, PAGE_SIZE );
   sbi->dev_size   = sb_size;
-  sbi->max_block  = sb_size >> PAGE_CACHE_SHIFT;
+  sbi->max_block  = sb_size >> PAGE_SHIFT;
 
   //
   // set s_fs_info to access options in BdRead/BdWrite
@@ -13408,7 +13416,7 @@ ufsd_fill_super(
   //
   VfsTrace( 0, Dbg, ("\"%s\": size = 0x%llx*0x%x >= 0x%llx*0x%lx, bs=%x\n",
                         sb->s_id, sb_size>>blksize_bits( sector_size ), sector_size,
-                        sbi->max_block, PAGE_CACHE_SIZE,
+                        sbi->max_block, PAGE_SIZE,
                         bdev_physical_block_size( bdev )));
 
   {
@@ -13423,7 +13431,7 @@ ufsd_fill_super(
     }
   }
 
-  err = ufsdapi_volume_mount( sb, sector_size, &sb_size, &sbi->options, &Volume, psys_info->totalram, PAGE_CACHE_SIZE, &sbi->fi );
+  err = ufsdapi_volume_mount( sb, sector_size, &sb_size, &sbi->options, &Volume, psys_info->totalram, PAGE_SIZE, &sbi->fi );
 
   if ( 0 != err ) {
     if ( !silent )
@@ -13543,7 +13551,7 @@ ufsd_fill_super(
   ufsd_proc_info_create( sb );
 
   if ( sbi->options.raKb )
-    sb->s_bdi->ra_pages = sbi->options.raKb >> ( PAGE_CACHE_SHIFT-10 );
+    sb->s_bdi->ra_pages = sbi->options.raKb >> ( PAGE_SHIFT-10 );
 
   //
   // Start flush thread.

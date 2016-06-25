@@ -4253,7 +4253,7 @@ jnl_invalidatepage(
 {
   struct buffer_head *head, *bh, *next;
   unsigned int curr_off = 0;
-  int partial_page = (offset || length < PAGE_CACHE_SIZE);
+  int partial_page = (offset || length < PAGE_SIZE);
   int may_free = 1;
   int ret;
 
@@ -4674,11 +4674,11 @@ release_buffer_page(
     && trylock_page( page )
     )
   {
-    page_cache_get( page );
+    get_page( page );
     __brelse( bh );
     try_to_free_buffers( page );
     unlock_page( page );
-    page_cache_release( page );
+    put_page( page );
   } else {
     __brelse( bh );
   }
@@ -6676,7 +6676,7 @@ jnl_blocks_per_page(
     IN struct inode *i
     )
 {
-  return 1 << ( PAGE_CACHE_SHIFT - i->i_sb->s_blocksize_bits );
+  return 1 << ( PAGE_SHIFT - i->i_sb->s_blocksize_bits );
 }
 #endif // #ifdef USE_JNL_EXTRA
 

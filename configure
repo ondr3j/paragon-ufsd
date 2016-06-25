@@ -5022,6 +5022,19 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+ac_fn_c_check_decl "$LINENO" "get_user_pages_remote" "ac_cv_have_decl_get_user_pages_remote" "#include <linux/mm.h>
+"
+if test "x$ac_cv_have_decl_get_user_pages_remote" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_GET_USER_PAGES_REMOTE $ac_have_decl
+_ACEOF
+
+
 #============================================================================================================================
 # Checking with -Werror
 # Using -Wimplicit-function-declaration to avoid additional checks like: (TYPE) FUNCTION;
