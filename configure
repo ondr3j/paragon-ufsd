@@ -5293,6 +5293,48 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_POSIX_ACL_TO_XATTR_V2}" >&5
 $as_echo "${HAVE_DECL_POSIX_ACL_TO_XATTR_V2}" >&6; }
 
+# Checking version of posix_acl_valid
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking posix_acl_valid" >&5
+$as_echo_n "checking posix_acl_valid... " >&6; }
+HAVE_DECL_POSIX_ACL_VALID="V1"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+#include <linux/posix_acl.h>
+int tst()
+{
+  struct user_namespace* ns;
+  const struct posix_acl *acl;
+
+  return posix_acl_valid( ns, acl );
+}
+
+int
+main ()
+{
+
+  tst();
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_POSIX_ACL_VALID_V1 0" >>confdefs.h
+$as_echo "#define HAVE_DECL_POSIX_ACL_VALID_V2 1" >>confdefs.h
+ HAVE_DECL_POSIX_ACL_VALID="V2"
+else
+
+$as_echo "#define HAVE_DECL_POSIX_ACL_VALID_V1 1" >>confdefs.h
+$as_echo "#define HAVE_DECL_POSIX_ACL_VALID_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_POSIX_ACL_VALID}" >&5
+$as_echo "${HAVE_DECL_POSIX_ACL_VALID}" >&6; }
+
 # Checking dentry_operations.d_hash
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking dentry_operations.d_hash" >&5
 $as_echo_n "checking dentry_operations.d_hash... " >&6; }
@@ -5528,6 +5570,44 @@ $as_echo "#define HAVE_DECL_DCOMPARE_V3 1" >>confdefs.h
 else
 
 $as_echo "#define HAVE_DECL_DCOMPARE_V3 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+#include <linux/dcache.h>
+int ufsd_compare(
+    const struct dentry* de,
+    unsigned int         len,
+    const char*          str,
+    const struct qstr*   name
+    )
+{
+  return 0;
+}
+int
+main ()
+{
+
+static struct dentry_operations ufsd_dop = {
+  .d_compare = ufsd_compare,
+};
+ sizeof(ufsd_dop);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_DCOMPARE_V4 1" >>confdefs.h
+ HAVE_DECL_DCOMPARE="V4"
+else
+
+$as_echo "#define HAVE_DECL_DCOMPARE_V4 0" >>confdefs.h
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
@@ -6543,6 +6623,32 @@ $as_echo "#define HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 0" >>confdefs.h
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+int
+main ()
+{
+
+  blockdev_direct_IO( NULL, NULL, NULL, NULL );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 1" >>confdefs.h
+ HAVE_DECL_BLOCKDEV_DIRECT_IO="V5"
+else
+
+$as_echo "#define HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_BLOCKDEV_DIRECT_IO}" >&5
 $as_echo "${HAVE_DECL_BLOCKDEV_DIRECT_IO}" >&6; }
 
@@ -7550,6 +7656,460 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_PUT_LINK}" >&5
 $as_echo "${HAVE_DECL_PUT_LINK}" >&6; }
+
+
+# Checking submit_bh
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking submit_bh" >&5
+$as_echo_n "checking submit_bh... " >&6; }
+HAVE_DECL_SUBMIT_BH="Unknown"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/buffer_head.h>
+
+int
+main ()
+{
+
+struct buffer_head *bh = 0;
+(void) submit_bh;
+submit_bh( 0, bh );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_SUBMIT_BH_V1 1" >>confdefs.h
+ HAVE_DECL_SUBMIT_BH="V1"
+else
+
+$as_echo "#define HAVE_DECL_SUBMIT_BH_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/buffer_head.h>
+
+int
+main ()
+{
+
+struct buffer_head *bh = 0;
+(void) submit_bh;
+submit_bh( 0, 0, bh );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_SUBMIT_BH_V2 1" >>confdefs.h
+ HAVE_DECL_SUBMIT_BH="V2"
+else
+
+$as_echo "#define HAVE_DECL_SUBMIT_BH_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_SUBMIT_BH}" >&5
+$as_echo "${HAVE_DECL_SUBMIT_BH}" >&6; }
+
+
+# Checking submit_bio
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking submit_bio" >&5
+$as_echo_n "checking submit_bio... " >&6; }
+HAVE_DECL_SUBMIT_BIO="Unknown"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+int
+main ()
+{
+
+struct bio *bio = 0;
+(void) submit_bio;
+submit_bio( 0, bio );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_SUBMIT_BIO_V1 1" >>confdefs.h
+ HAVE_DECL_SUBMIT_BIO="V1"
+else
+
+$as_echo "#define HAVE_DECL_SUBMIT_BIO_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+int
+main ()
+{
+
+struct bio *bio = 0;
+(void) submit_bio;
+submit_bio( bio );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_SUBMIT_BIO_V2 1" >>confdefs.h
+ HAVE_DECL_SUBMIT_BIO="V2"
+else
+
+$as_echo "#define HAVE_DECL_SUBMIT_BIO_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_SUBMIT_BIO}" >&5
+$as_echo "${HAVE_DECL_SUBMIT_BIO}" >&6; }
+
+
+# THIS IS WHERE IT BEGINS
+# Checking submit_bio
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking ll_rw_block" >&5
+$as_echo_n "checking ll_rw_block... " >&6; }
+HAVE_DECL_LL_RW_BLOCK="Unknown"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/buffer_head.h>
+
+int
+main ()
+{
+
+struct buffer_head **bhs = 0;
+(void) ll_rw_block;
+ll_rw_block( 0, 0, bhs );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_LL_RW_BLOCK_V1 1" >>confdefs.h
+ HAVE_DECL_LL_RW_BLOCK="V1"
+else
+
+$as_echo "#define HAVE_DECL_LL_RW_BLOCK_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/buffer_head.h>
+
+int
+main ()
+{
+
+struct buffer_head **bhs = 0;
+(void) ll_rw_block;
+ll_rw_block( 0, 0, 0, bhs );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_LL_RW_BLOCK_V2 1" >>confdefs.h
+ HAVE_DECL_LL_RW_BLOCK="V2"
+else
+
+$as_echo "#define HAVE_DECL_LL_RW_BLOCK_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_LL_RW_BLOCK}" >&5
+$as_echo "${HAVE_DECL_LL_RW_BLOCK}" >&6; }
+#THIS IS WHERE IT ENDS
+
+# Checking inode_operations.setxattr
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking inode_operations.setxattr" >&5
+$as_echo_n "checking inode_operations.setxattr... " >&6; }
+HAVE_DECL_SETXATTR="V1"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+static int
+ufsd_setxattr(
+		struct dentry *de,
+		struct inode  *ino,
+		const char 		*name,
+		const void 		*value,
+		size_t 				size,
+		int 					flags
+		)
+{
+  return 0;
+}
+
+int
+main ()
+{
+
+struct inode_operations ufsd_inode_op = {
+  .setxattr = ufsd_setxattr,
+};
+ sizeof(ufsd_inode_op);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_SETXATTR_V1 0" >>confdefs.h
+$as_echo "#define HAVE_DECL_SETXATTR_V2 1" >>confdefs.h
+ HAVE_DECL_SETXATTR="V2"
+else
+
+$as_echo "#define HAVE_DECL_SETXATTR_V1 1" >>confdefs.h
+$as_echo "#define HAVE_DECL_SETXATTR_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_SETXATTR}" >&5
+$as_echo "${HAVE_DECL_SETXATTR}" >&6; }
+
+
+# Checking inode_operations.getxattr
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking inode_operations.getxattr" >&5
+$as_echo_n "checking inode_operations.getxattr... " >&6; }
+HAVE_DECL_GETXATTR="V1"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+static ssize_t
+ufsd_getxattr(
+		struct dentry *de,
+		struct inode  *ino,
+		const char 		*name,
+		void 					*value,
+		size_t 				size
+		)
+{
+  return 0;
+}
+
+int
+main ()
+{
+
+struct inode_operations ufsd_inode_op = {
+  .getxattr = ufsd_getxattr,
+};
+ sizeof(ufsd_inode_op);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_GETXATTR_V1 0" >>confdefs.h
+$as_echo "#define HAVE_DECL_GETXATTR_V2 1" >>confdefs.h
+ HAVE_DECL_GETXATTR="V2"
+else
+
+$as_echo "#define HAVE_DECL_GETXATTR_V1 1" >>confdefs.h
+$as_echo "#define HAVE_DECL_GETXATTR_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_GETXATTR}" >&5
+$as_echo "${HAVE_DECL_GETXATTR}" >&6; }
+
+
+# Checking generic_file_direct_write version
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking generic_file_direct_write" >&5
+$as_echo_n "checking generic_file_direct_write... " >&6; }
+HAVE_DECL_GENERIC_FILE_DIRECT_WRITE="Unknown"
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+int
+main ()
+{
+
+  struct kiocb *iocb = NULL;
+  struct iov_iter *from = NULL;
+  generic_file_direct_write( iocb, from, 0 );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_GENERIC_FILE_DIRECT_WRITE_V1 1" >>confdefs.h
+ HAVE_DECL_GENERIC_FILE_DIRECT_WRITE="V1"
+else
+
+$as_echo "#define HAVE_DECL_GENERIC_FILE_DIRECT_WRITE_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+int
+main ()
+{
+
+  struct kiocb *iocb = NULL;
+  struct iov_iter *from = NULL;
+  generic_file_direct_write( iocb, from );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_GENERIC_FILE_DIRECT_WRITE_V2 1" >>confdefs.h
+ HAVE_DECL_GENERIC_FILE_DIRECT_WRITE="V2"
+else
+
+$as_echo "#define HAVE_DECL_GENERIC_FILE_DIRECT_WRITE_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_GENERIC_FILE_DIRECT_WRITE}" >&5
+$as_echo "${HAVE_DECL_GENERIC_FILE_DIRECT_WRITE}" >&6; }
+
+
+# Checking for inode_lock
+ac_fn_c_check_decl "$LINENO" "inode_lock" "ac_cv_have_decl_inode_lock" "#include <linux/fs.h>
+"
+if test "x$ac_cv_have_decl_inode_lock" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_INODE_LOCK $ac_have_decl
+_ACEOF
+
+
+# Checking for inode_unlock
+ac_fn_c_check_decl "$LINENO" "inode_unlock" "ac_cv_have_decl_inode_unlock" "#include <linux/fs.h>
+"
+if test "x$ac_cv_have_decl_inode_unlock" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_INODE_UNLOCK $ac_have_decl
+_ACEOF
+
+
+# Checking for inode_trylock
+ac_fn_c_check_decl "$LINENO" "inode_trylock" "ac_cv_have_decl_inode_trylock" "#include <linux/fs.h>
+"
+if test "x$ac_cv_have_decl_inode_trylock" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_INODE_TRYLOCK $ac_have_decl
+_ACEOF
+
+
+# Checking for inode_is_locked
+ac_fn_c_check_decl "$LINENO" "inode_is_locked" "ac_cv_have_decl_inode_is_locked" "#include <linux/fs.h>
+"
+if test "x$ac_cv_have_decl_inode_is_locked" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_INODE_IS_LOCKED $ac_have_decl
+_ACEOF
+
+
+# Checking generic_write_sync
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking generic_write_sync" >&5
+$as_echo_n "checking generic_write_sync... " >&6; }
+HAVE_DECL_GENERIC_WRITE_SYNC="V1"
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+int
+main ()
+{
+
+  struct kiocb *iocb = NULL;
+  generic_write_sync( iocb, 0 );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_GENERIC_WRITE_SYNC_V1 0" >>confdefs.h
+$as_echo "#define HAVE_DECL_GENERIC_WRITE_SYNC_V2 1" >>confdefs.h
+ HAVE_DECL_GENERIC_WRITE_SYNC="V2"
+else
+
+$as_echo "#define HAVE_DECL_GENERIC_WRITE_SYNC_V1 1" >>confdefs.h
+$as_echo "#define HAVE_DECL_GENERIC_WRITE_SYNC_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_GENERIC_WRITE_SYNC}" >&5
+$as_echo "${HAVE_DECL_GENERIC_WRITE_SYNC}" >&6; }
+
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure

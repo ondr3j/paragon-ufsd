@@ -4728,10 +4728,22 @@ jnl_submit_blhdr(
 
 #if !defined async_commit && defined WRITE_FLUSH_FUA
   if ( ( j->flags & JNL_FLAGS_BARRIER ) )
-    ret = submit_bh( WRITE_SYNC | WRITE_FLUSH_FUA, bh );
+    ret = submit_bh(
+#if defined HAVE_DECL_SUBMIT_BH_V1 && HAVE_DECL_SUBMIT_BH_V1
+    	WRITE_SYNC | WRITE_FLUSH_FUA
+#elif defined HAVE_DECL_SUBMIT_BH_V2 && HAVE_DECL_SUBMIT_BH_V2
+    	REQ_OP_WRITE, WRITE_SYNC | WRITE_FLUSH_FUA
+#endif
+    	, bh );
   else
 #endif
-    ret = submit_bh( WRITE_SYNC, bh );
+    ret = submit_bh(
+#if defined HAVE_DECL_SUBMIT_BH_V1 && HAVE_DECL_SUBMIT_BH_V1
+    	WRITE_SYNC
+#elif defined HAVE_DECL_SUBMIT_BH_V2 && HAVE_DECL_SUBMIT_BH_V2
+    	REQ_OP_WRITE, WRITE_SYNC
+#endif
+    	, bh );
 
   *cbh = bh;
 
@@ -5267,7 +5279,13 @@ start_journal_io:
         clear_buffer_dirty( bh );
         set_buffer_uptodate( bh );
         bh->b_end_io = jnl_end_buffer_io_sync;
-        submit_bh( WRITE_SYNC, bh );
+        submit_bh(
+#if defined HAVE_DECL_SUBMIT_BH_V1 && HAVE_DECL_SUBMIT_BH_V1
+    			WRITE_SYNC
+#elif defined HAVE_DECL_SUBMIT_BH_V2 && HAVE_DECL_SUBMIT_BH_V2
+    			REQ_OP_WRITE, WRITE_SYNC
+#endif
+        	, bh );
       }
 
       cond_resched();
@@ -6325,7 +6343,14 @@ __blkdev_issue_fill_1(
     }
     ret = 0;
     atomic_inc( &bb.done );
-    submit_bio( WRITE, bio );
+#if defined HAVE_DECL_SUBMIT_BIO_V2 && HAVE_DECL_SUBMIT_BIO_V2
+    bio_set_op_attrs(bio, REQ_OP_WRITE, 0);
+#endif
+    submit_bio(
+#if defined HAVE_DECL_SUBMIT_BIO_V1 && HAVE_DECL_SUBMIT_BIO_V1
+    	WRITE,
+#endif
+    	bio );
   }
 
   // Wait for bios in-flight

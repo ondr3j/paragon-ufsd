@@ -590,6 +590,21 @@ typedef struct unode {
   #define is_fork(u)  0
 #endif
 
+#if !( defined HAVE_DECL_INODE_LOCK && HAVE_DECL_INODE_LOCK )
+  #define inode_lock( i ) mutex_lock( &(i)->i_mutex );
+#endif
+
+#if !( defined HAVE_DECL_INODE_UNLOCK && HAVE_DECL_INODE_UNLOCK )
+  #define inode_unlock( i ) mutex_unlock( &(i)->i_mutex );
+#endif
+
+#if !( defined HAVE_DECL_INODE_TRYLOCK && HAVE_DECL_INODE_TRYLOCK )
+  #define inode_trylock( i ) mutex_trylock( &(i)->i_mutex );
+#endif
+
+#if !( defined HAVE_DECL_INODE_IS_LOCKED && HAVE_DECL_INODE_IS_LOCKED )
+  #define inode_is_locked( i ) mutex_is_locked( &(i)->i_mutex );
+#endif
 
 ///////////////////////////////////////////////////////////
 // set_valid_size
@@ -1560,7 +1575,13 @@ out:
   bh->b_blocknr = TailBlock;
   set_buffer_mapped( bh );
   lock_buffer( bh );
-  submit_bh( READ, bh );
+  submit_bh(
+#if defined HAVE_DECL_SUBMIT_BH_V1 && HAVE_DECL_SUBMIT_BH_V1
+  	READ
+#elif defined HAVE_DECL_SUBMIT_BH_V2 && HAVE_DECL_SUBMIT_BH_V2
+  	REQ_OP_READ, 0
+#endif
+  	, bh );
   wait_on_buffer( bh );
   if ( !buffer_uptodate( bh ) ) {
     brelse( bh );
@@ -1819,7 +1840,13 @@ ufsd_bd_read(
       bh = __getblk( bdev, devblock, blocksize );
 
       if ( NULL != bh && !buffer_uptodate( bh ) ) {
-        ll_rw_block( READ | REQ_META | REQ_PRIO, 1, &bh );
+        ll_rw_block(
+#if defined HAVE_DECL_LL_RW_BLOCK_V1 && HAVE_DECL_LL_RW_BLOCK_V1
+        	READ | REQ_META | REQ_PRIO
+#elif defined HAVE_DECL_LL_RW_BLOCK_V2 && HAVE_DECL_LL_RW_BLOCK_V2
+        	REQ_OP_READ, REQ_META | REQ_PRIO
+#endif
+        	, 1, &bh );
         wait_on_buffer( bh );
         if ( !buffer_uptodate( bh ) ) {
           put_bh( bh );
@@ -2061,7 +2088,13 @@ ufsd_bd_map(
       DEBUG_ONLY( hint = "c "; )
     } else {
       DEBUG_ONLY( hint = "r "; )
-      ll_rw_block( READ | REQ_META | REQ_PRIO, 1, &bh );
+      ll_rw_block(
+#if defined HAVE_DECL_LL_RW_BLOCK_V1 && HAVE_DECL_LL_RW_BLOCK_V1
+        READ | REQ_META | REQ_PRIO
+#elif defined HAVE_DECL_LL_RW_BLOCK_V2 && HAVE_DECL_LL_RW_BLOCK_V2
+        REQ_OP_READ, REQ_META | REQ_PRIO
+#endif
+      	, 1, &bh );
       wait_on_buffer( bh );
       if ( !buffer_uptodate( bh ) ) {
         put_bh( bh );
@@ -2167,7 +2200,13 @@ ufsd_bd_set_dirty(
   else if ( bh->b_blocknr >= sbi->max_block ) {
     DebugTrace( 0, UFSD_LEVEL_IO, ("write tail: %"PSCT"x\n", bh->b_blocknr ));
     lock_buffer( bh );
-    submit_bh( WRITE, bh );
+    submit_bh(
+#if defined HAVE_DECL_SUBMIT_BH_V1 && HAVE_DECL_SUBMIT_BH_V1
+    	WRITE
+#elif defined HAVE_DECL_SUBMIT_BH_V2 && HAVE_DECL_SUBMIT_BH_V2
+    	REQ_OP_WRITE, 0
+#endif
+    	, bh );
   }
 #endif
 
@@ -3440,7 +3479,7 @@ ufsd_file_release(
       && 1 == atomic_read( &i->i_writecount ) ) {
 
       UINT64 allocated;
-      mutex_lock( &i->i_mutex );
+      inode_lock( i );
       lock_ufsd( sbi );
 
       ufsdapi_file_flush( sbi->ufsd, u->ufile, sbi->fi, ufsd_update_ondisk( sbi, i, sbi->fi ), i, &allocated );
@@ -3452,7 +3491,7 @@ ufsd_file_release(
 //      spin_unlock( &i->i_lock );
 
       unlock_ufsd( sbi );
-      mutex_unlock( &i->i_mutex );
+      inode_unlock( i );
 
       TRACE_ONLY( hint="(updated)"; )
     }
@@ -3838,7 +3877,9 @@ ufsd_name_hash(
 ///////////////////////////////////////////////////////////
 static int
 ufsd_compare(
+#if ( defined HAVE_DECL_DCOMPARE_V2 && HAVE_DECL_DCOMPARE_V2 ) || ( defined HAVE_DECL_DCOMPARE_V3 && HAVE_DECL_DCOMPARE_V3 )
     IN const struct dentry *parent,
+#endif
 #if defined HAVE_DECL_DCOMPARE_V2 && HAVE_DECL_DCOMPARE_V2
     IN const struct inode  *iparent,
 #endif
@@ -3860,11 +3901,23 @@ ufsd_compare(
   //
   // NOTE: do not use 'i' cause it can be NULL (3.6.6+)
   //
-  DEBUG_ONLY( UFSD_SB( parent->d_inode->i_sb )->nCompareCalls += 1; )
+  DEBUG_ONLY( UFSD_SB(
+#if defined HAVE_DECL_DCOMPARE_V4 && HAVE_DECL_DCOMPARE_V4
+  	de->d_parent
+#else
+  	parent
+#endif
+  	->d_inode->i_sb )->nCompareCalls += 1; )
 
   ret = ufsd_compare_hlp( name->name, name->len, str, len );
   if ( ret < 0 ) {
-    usuper *sbi  = UFSD_SB( parent->d_inode->i_sb );
+    usuper *sbi  = UFSD_SB(
+#if defined HAVE_DECL_DCOMPARE_V4 && HAVE_DECL_DCOMPARE_V4
+    	de->d_parent
+#else
+    	parent
+#endif
+    	->d_inode->i_sb );
     mutex_lock( &sbi->nocase_mutex );
     ret = !ufsdapi_names_equal( sbi->ufsd, name->name, name->len, str, len );
     mutex_unlock( &sbi->nocase_mutex );
@@ -4320,7 +4373,13 @@ ufsd_block_truncate_page(
 
   if ( !buffer_uptodate( bh ) ) {
     DebugTrace( 0, Dbg, ("block_truncate_page - read b=%" PSCT "x\n", bh->b_blocknr ) );
-    ll_rw_block( READ, 1, &bh );
+    ll_rw_block(
+#if defined HAVE_DECL_LL_RW_BLOCK_V1 && HAVE_DECL_LL_RW_BLOCK_V1
+      READ
+#elif defined HAVE_DECL_LL_RW_BLOCK_V2 && HAVE_DECL_LL_RW_BLOCK_V2
+      REQ_OP_READ, 0
+#endif
+    	, 1, &bh );
     wait_on_buffer( bh );
     if ( !buffer_uptodate( bh ) ) {
       // Read error
@@ -4362,7 +4421,7 @@ ufsd_set_size(
 
   VfsTrace( +1, Dbg, ("%s: r=%lx, sz=%llx,%llx -> %llx%s\n", hint, i->i_ino, u->valid, old_size, new_size, is_sparsed( u )?" ,sp" : "" ) );
 
-  assert( mutex_is_locked( &i->i_mutex ) );
+  assert( inode_is_locked( i ) );
 
   // If truncate update valid size first
   write_lock_irqsave( &u->rwlock, flags );
@@ -4713,6 +4772,11 @@ out:
   #define Posix_acl_from_xattr( value, size )       posix_acl_from_xattr( value, size )
 #endif
 
+#if defined HAVE_DECL_POSIX_ACL_VALID_V2 && HAVE_DECL_POSIX_ACL_VALID_V2
+  #define Posix_acl_valid( acl )	posix_acl_valid( &user_ns, acl )
+#else
+  #define Posix_acl_valid( acl )	posix_acl_valid( acl )
+#endif
 
 #define UFSD_XATTR_SYSTEM_DOS_ATTRIB         "system.dos_attrib"
 #define UFSD_XATTR_SYSTEM_DOS_ATTRIB_LEN     ( sizeof( UFSD_XATTR_SYSTEM_DOS_ATTRIB ) - 1 )
@@ -5448,7 +5512,7 @@ ufsd_xattr_set_acl(
       return PTR_ERR(acl);
 
     if ( NULL != acl ) {
-      err = posix_acl_valid( acl );
+      err = Posix_acl_valid( acl );
       if ( err )
         goto release_and_out;
     }
@@ -5486,14 +5550,19 @@ release_and_out:
 ///////////////////////////////////////////////////////////
 static ssize_t
 ufsd_getxattr(
-    IN struct dentry  *de,
+    IN struct dentry  *unused,
+#if defined HAVE_DECL_GETXATTR_V2 && HAVE_DECL_GETXATTR_V2
+    IN struct inode 	*i,
+#endif
     IN const char     *name,
     OUT void          *buffer,
     IN size_t         size
     )
 {
   ssize_t err;
-  struct inode *i       = de->d_inode;
+#if defined HAVE_DECL_SETXATTR_V1 && HAVE_DECL_SETXATTR_V1
+  struct inode *i       = unused->d_inode;
+#endif
   unode *u              = UFSD_U( i );
   usuper *sbi           = UFSD_SB( i->i_sb );
   size_t name_len       = strlen( name );
@@ -5648,7 +5717,10 @@ out:
 ///////////////////////////////////////////////////////////
 noinline static int
 ufsd_setxattr(
-    IN struct dentry  *de,
+    IN struct dentry  *unused,
+#if defined HAVE_DECL_SETXATTR_V2 && HAVE_DECL_SETXATTR_V2
+    IN struct inode 	*i,
+#endif
     IN const char     *name,
     IN const void     *value,
     IN size_t         size,
@@ -5656,7 +5728,9 @@ ufsd_setxattr(
     )
 {
   int err;
-  struct inode *i       = de->d_inode;
+#if defined HAVE_DECL_SETXATTR_V1 && HAVE_DECL_SETXATTR_V1
+  struct inode *i       = unused->d_inode;
+#endif
   unode *u              = UFSD_U( i );
   usuper *sbi           = UFSD_SB( i->i_sb );
   size_t name_len       = strlen( name );
@@ -5821,7 +5895,12 @@ ufsd_removexattr(
     IN const char     *name
     )
 {
-  return ufsd_setxattr( de, name, NULL, 0, XATTR_REPLACE );
+  return ufsd_setxattr(
+  	de,
+#if defined HAVE_DECL_SETXATTR_V2 && HAVE_DECL_SETXATTR_V2
+  	de->d_inode,
+#endif
+  	name, NULL, 0, XATTR_REPLACE );
 }
 
 #endif // #ifdef CONFIG_FS_POSIX_ACL
@@ -6161,7 +6240,7 @@ ufsd_extend_initialized_size(
   struct address_space* mapping = u->i.i_mapping;
 
   assert( !is_sparsed_or_compressed( u ) );
-  assert( mutex_is_locked( &u->i.i_mutex ) );
+  assert( inode_is_locked( &u->i ) );
 
   DebugTrace( +1, Dbg, ("zero: r=%lx, [%llx-%llx,%llx]\n", u->i.i_ino, valid, new_valid, i_size ));
 
@@ -6575,7 +6654,11 @@ __ufsd_file_write_iter(
   if ( unlikely( IS_IO_DIRECT( iocb, file ) ) ) {
     loff_t pos, endbyte, status;
 
-    written = generic_file_direct_write( iocb, from, iocb->ki_pos );
+    written = generic_file_direct_write( iocb, from
+#if defined HAVE_DECL_GENERIC_FILE_DIRECT_WRITE_V1 && HAVE_DECL_GENERIC_FILE_DIRECT_WRITE_V1
+    	, iocb->ki_pos
+#endif
+    	);
 
     if ( unlikely( written < 0 || !iov_iter_count( from ) || IS_DAX( i ) ) )
       goto out;
@@ -6675,15 +6758,21 @@ ufsd_file_write_iter(
                         IS_IO_APPEND( iocb, file )? ",append":"",
                         IS_IO_DIRECT( iocb, file )? ",di":"" ));
 
-  mutex_lock( &i->i_mutex );
+  inode_lock( i );
   blk_start_plug( &plug );
 
   ret = __ufsd_file_write_iter( iocb, iter, file, i );
 
-  mutex_unlock( &i->i_mutex );
+  inode_unlock( i );
 
   if ( likely( ret > 0 ) ) {
-    ssize_t err = generic_write_sync( file, iocb->ki_pos - ret, ret );
+    ssize_t err = generic_write_sync(
+#if defined HAVE_DECL_GENERIC_WRITE_SYNC_V1 && HAVE_DECL_GENERIC_WRITE_SYNC_V1
+    	file, iocb->ki_pos - ret
+#elif defined HAVE_DECL_GENERIC_WRITE_SYNC_V2 && HAVE_DECL_GENERIC_WRITE_SYNC_V2
+    	iocb
+#endif
+    	, ret );
     if ( err < 0 )
       ret = err;
   }
@@ -7136,12 +7225,12 @@ ufsd_file_aio_write(
                        IS_IO_APPEND(iocb, file)? ",append":"",
                        IS_IO_DIRECT(iocb, file)?",di":"" ));
 
-  mutex_lock( &i->i_mutex );
+  inode_lock( i );
   blk_start_plug( &plug );
 
   ret = __ufsd_file_aio_write( iocb, iov, nr_segs );
 
-  mutex_unlock( &i->i_mutex );
+  inode_unlock( i );
   CHECK_TIME_ONLY( j1 = jiffies - j0; )
 
   if ( likely( ret > 0 ) ) {//|| EIOCBQUEUED == ret ) ) {
@@ -7310,9 +7399,9 @@ ufsd_file_mmap(
         DebugTrace( 0, Dbg, ("file_mmap - update valid size for sparsed file %llx -> %llx\n", valid, from ));
         set_valid_size( u, from );
       } else {
-        mutex_lock( &i->i_mutex );
+        inode_lock( i );
         err = ufsd_extend_initialized_size( file, u, valid, from );
-        mutex_unlock( &i->i_mutex );
+        inode_unlock( i );
         if ( unlikely( 0 != err ) )
           goto out;
       }
@@ -7469,7 +7558,7 @@ ufsd_fallocate(
     //
     // Call UFSD library
     //
-    mutex_lock( &i->i_mutex );
+    inode_lock( i );
 
     //
     // Change in-memory size before 'vbo_to_lbo'
@@ -7492,7 +7581,7 @@ ufsd_fallocate(
       i_size_write( i, i_size );
     }
 
-    mutex_unlock( &i->i_mutex );
+    inode_unlock( i );
   }
 
   VfsTrace( -1, Dbg, ("fallocate -> %d, sz=%llx,%llx\n", err, u->valid, i->i_size ));
@@ -7564,7 +7653,7 @@ ufsd_splice_write_from_socket(
 
   DebugTrace( +1, Dbg, ("splice_write_from_socket: r=%lx, [%llx + %zx), sz=%llx,%llx\n", i->i_ino, pos, count, u->valid, i->i_size ));
 
-  mutex_lock( &i->i_mutex );
+  inode_lock( i );
   blk_start_plug( &plug );
 
 #ifdef vfs_check_frozen
@@ -7726,7 +7815,7 @@ done:
     mark_inode_dirty( i );
 
   current->backing_dev_info = NULL;
-  mutex_unlock( &i->i_mutex );
+  inode_unlock( i );
 
   kfree( iov );
   kfree( pages );
@@ -8394,7 +8483,14 @@ ufsd_bio_read_submit(
   assert( 0 == (BIO_BISIZE( bio ) & 0x1ff) );
   DebugTrace( 0, UFSD_LEVEL_BIO, ("submit_bio read at o=%" PSCT "x, sz=%x, cnt=%x\n", BIO_BISECTOR( bio ) << 9, BIO_BISIZE( bio ), (unsigned)bio->bi_vcnt ));
   bio->bi_end_io = ufsd_end_io_read;
-  submit_bio( READ, bio );
+#if defined HAVE_DECL_SUBMIT_BIO_V2 && HAVE_DECL_SUBMIT_BIO_V2
+  bio_set_op_attrs(bio, REQ_OP_READ, 0);
+#endif
+  submit_bio(
+#if defined HAVE_DECL_SUBMIT_BIO_V1 && HAVE_DECL_SUBMIT_BIO_V1
+    READ,
+#endif
+  	bio );
 }
 
 
@@ -8423,7 +8519,14 @@ ufsd_bio_write_submit(
   assert( 0 == (BIO_BISIZE( bio ) & 0x1ff) );
   DebugTrace( 0, UFSD_LEVEL_BIO, ("submit_bio write at o=%" PSCT "x, sz=%x, cnt=%x\n", BIO_BISECTOR( bio ) << 9, BIO_BISIZE( bio ), (unsigned)bio->bi_vcnt ));
   bio->bi_end_io = ufsd_end_io_write;
-  submit_bio( WRITE, bio );
+#if defined HAVE_DECL_SUBMIT_BIO_V2 && HAVE_DECL_SUBMIT_BIO_V2
+  bio_set_op_attrs(bio, REQ_OP_WRITE, 0);
+#endif
+  submit_bio(
+#if defined HAVE_DECL_SUBMIT_BIO_V1 && HAVE_DECL_SUBMIT_BIO_V1
+    WRITE,
+#endif
+    bio );
 }
 
 
@@ -8703,7 +8806,13 @@ next_block:
           ufsd_end_buffer_async_read( bh, 1 );
         } else {
           DebugTrace( 0, UFSD_LEVEL_PAGE_RW, ("submit_bh( b=%" PSCT "x, r )\n", bh->b_blocknr));
-          submit_bh( READ, bh );
+          submit_bh(
+#if defined HAVE_DECL_SUBMIT_BH_V1 && HAVE_DECL_SUBMIT_BH_V1
+          	READ
+#elif defined HAVE_DECL_SUBMIT_BH_V2 && HAVE_DECL_SUBMIT_BH_V2
+          	REQ_OP_READ, 0
+#endif
+          	, bh );
         }
       }
     }
@@ -9135,7 +9244,13 @@ next_block:
     struct buffer_head *next = bh->b_this_page;
     if ( buffer_async_write( bh ) ) {
       DebugTrace( 0, UFSD_LEVEL_PAGE_RW, ("submit_bh( b=%" PSCT "x, w )\n", bh->b_blocknr ));
-      submit_bh( WRITE, bh );
+      submit_bh(
+#if defined HAVE_DECL_SUBMIT_BH_V1 && HAVE_DECL_SUBMIT_BH_V1
+    		WRITE
+#elif defined HAVE_DECL_SUBMIT_BH_V2 && HAVE_DECL_SUBMIT_BH_V2
+    		REQ_OP_WRITE, 0
+#endif
+      	, bh );
       all_done = 0;
     }
     bh = next;
@@ -9516,7 +9631,7 @@ ufsd_write_begin(
   DebugTrace( +1, UFSD_LEVEL_WBWE, ("write_begin: r=%lx, o=%llx,%x fl=%x sz=%llx,%llx%s\n",
                         i->i_ino, pos, len, flags, u->valid, i_size0, is_sparsed( u )?",sp":"" ));
 
-  assert( mutex_is_locked( &i->i_mutex ) );
+  assert( inode_is_locked( i ) );
 
   ProfileEnter( sbi, write_begin );
 
@@ -9694,7 +9809,13 @@ UseUfsd:
       valid = get_valid_size( u, NULL, NULL );
       if ( vbo < valid ) {
         DebugTrace( 0, UFSD_LEVEL_WBWE, ("write_begin - read %llx, b=%" PSCT "x\n", vbo, bh->b_blocknr ));
-        ll_rw_block( READ, 1, &bh );
+        ll_rw_block(
+#if defined HAVE_DECL_LL_RW_BLOCK_V1 && HAVE_DECL_LL_RW_BLOCK_V1
+        	READ
+#elif defined HAVE_DECL_LL_RW_BLOCK_V2 && HAVE_DECL_LL_RW_BLOCK_V2
+        	REQ_OP_READ, 0
+#endif
+        	, 1, &bh );
         *wait_bh++ = bh;
       } else {
         DebugTrace( 0, UFSD_LEVEL_WBWE, ("write_begin - zero_user %llx, b=%" PSCT "x + %lx\n", vbo, bh->b_blocknr, bh_offset( bh ) ));
@@ -9800,7 +9921,7 @@ ufsd_write_end(
   loff_t page_off = (loff_t)page->index << PAGE_SHIFT;
 
   assert( copied == len ); // just to test
-  assert( mutex_is_locked( &i->i_mutex ) );
+  assert( inode_is_locked( i ) );
 
   assert( atomic_read( &u->write_begin_end_cnt ) >= 1 );
   atomic_dec( &u->write_begin_end_cnt );
@@ -10306,6 +10427,9 @@ ufsd_get_block_for_direct_IO_read(
 #elif defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V4
   #define Blockdev_direct_IO( rw, iocb, i, bdev, iov, offset, nr_segs, get_block )  \
       blockdev_direct_IO( iocb, i, iter, offset, get_block ) // ! iter will be used from local context
+#elif defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V5
+  #define Blockdev_direct_IO( rw, iocb, i, bdev, iov, offset, nr_segs, get_block )  \
+      blockdev_direct_IO( iocb, i, iter, get_block ) // ! iter will be used from local context
 #else
   #error "Unknown type blockdev_direct_IO"
 #endif
@@ -10318,15 +10442,19 @@ ufsd_get_block_for_direct_IO_read(
 ///////////////////////////////////////////////////////////
 static ssize_t
 ufsd_direct_IO(
-#if !( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 )
+#if !( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 ) \
+ && !( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 )
     IN int                 rw,
 #endif
     IN struct kiocb       *iocb
 #if ( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V3 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V3 ) \
- || ( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 )
+ || ( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 ) \
+ || ( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 )
     // 3.16+
   , IN struct iov_iter    *iter
+#if !( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V5)
   , IN loff_t              offset
+#endif
 #else
   // 3.15-
   , IN const struct iovec *iov
@@ -10340,8 +10468,13 @@ ufsd_direct_IO(
   unsigned long       nr_segs = iter->nr_segs;
 #endif
 
-#if ( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 )
+#if ( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V4 ) \
+ || ( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 )
   int rw = iov_iter_rw(iter);
+#endif
+
+#if ( defined HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 && HAVE_DECL_BLOCKDEV_DIRECT_IO_V5 )
+  loff_t offset = iocb->ki_pos;
 #endif
 
   struct inode *i = iocb->ki_filp->f_mapping->host;
@@ -10434,7 +10567,7 @@ ufsd_direct_IO(
         get_user_pages
 #endif
         (
-          current, current->mm, uaddr, min_t( unsigned long, nr_pages, 64 ), 1, 0, pages, 0 
+          current, current->mm, uaddr, min_t( unsigned long, nr_pages, 64 ), 1, 0, pages, 0
         );
         up_read( &current->mm->mmap_sem );
 
@@ -10623,16 +10756,16 @@ ufsd_symlink(
 #ifdef UFSD_HFS_ONLY
     // hfs+
     i->i_op = &ufsd_link_inode_operations_u8;
-    mutex_lock( &i->i_mutex );
+    inode_lock( i );
     err = page_symlink( i, symname, cr.len );
-    mutex_unlock( &i->i_mutex );
+    inode_unlock( i );
 #elif defined UFSD_HFS
     // hfs+/ntfs/exfat
     if ( UFSD_SB( i->i_sb )->options.hfs ) {
       i->i_op = &ufsd_link_inode_operations_u8;
-      mutex_lock( &i->i_mutex );
+      inode_lock( i );
       err = page_symlink( i, symname, cr.len );
-      mutex_unlock( &i->i_mutex );
+      inode_unlock( i );
     } else {
       i->i_op = &ufsd_link_inode_operations_ufsd;
     }
@@ -11784,7 +11917,7 @@ ufsd_write_inode(
     DebugTrace( 0, Dbg, ("write_inode: no ufsd handle for this inode\n"));
     DEBUG_ONLY( hint = "no file"; )
 //    err = -EBADF;
-  } else if ( !mutex_trylock( &i->i_mutex ) ) {
+  } else if ( !inode_trylock( i) ) {
     mark_inode_dirty_sync( i );
     DEBUG_ONLY( hint = "file locked"; )
   } else {
@@ -11819,7 +11952,7 @@ ufsd_write_inode(
     if ( !is_compressed( u ) )
       update_cached_size( sbi, u, i->i_size, asize );
 
-    mutex_unlock( &i->i_mutex );
+    inode_unlock( i );
   }
 
   ProfileLeave( sbi, write_inode );

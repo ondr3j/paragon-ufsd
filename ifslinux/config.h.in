@@ -53,6 +53,10 @@
    iov_iter *iter, loff_t offset, get_block_t get_block); */
 #undef HAVE_DECL_BLOCKDEV_DIRECT_IO_V4
 
+/* ssize_t blockdev_direct_IO(struct kiocb *iocb, struct inode *inode, struct
+   iov_iter *iter, get_block_t get_block); */
+#undef HAVE_DECL_BLOCKDEV_DIRECT_IO_V5
+
 /* void block_invalidatepage(struct page *page, unsigned long offset); */
 #undef HAVE_DECL_BLOCK_INVALIDATEPAGE_V1
 
@@ -79,6 +83,10 @@
 /* int (*d_compare)(const struct dentry *, const struct dentry *, unsigned
    int, const char *, const struct qstr *); */
 #undef HAVE_DECL_DCOMPARE_V3
+
+/* int (*d_compare)(const struct dentry *, unsigned int, const char *,
+	 const struct qstr *); */
+#undef HAVE_DECL_DCOMPARE_V4
 
 /* int (*d_hash)(struct dentry *, int); */
 #undef HAVE_DECL_DHASH_V1
@@ -145,6 +153,42 @@
 /* int (*fsync) (struct file *, loff_t, loff_t, int datasync); */
 #undef HAVE_DECL_FO_FSYNC_V3
 
+/* int submit_bh(int, struct buffer_head *); */
+#undef HAVE_DECL_SUBMIT_BH_V1
+
+/* int submit_bh(int, int, struct buffer_head *); */
+#undef HAVE_DECL_SUBMIT_BH_V2
+
+/* vblk_qc_t submit_bio(int, struct bio *); */
+#undef HAVE_DECL_SUBMIT_BIO_V1
+
+/* blk_qc_t submit_bio(struct bio *); */
+#undef HAVE_DECL_SUBMIT_BIO_V2
+
+/* void ll_rw_block(int, int, struct buffer_head *[]); */
+#undef HAVE_DECL_LL_RW_BLOCK_V1
+
+/* void ll_rw_block(int, int, int, struct buffer_head *[]); */
+#undef HAVE_DECL_LL_RW_BLOCK_V2
+
+/* int (*setxattr) (struct dentry *, const char *, const void *, size_t, int); */
+#undef HAVE_DECL_SETXATTR_V1
+
+/* int (*setxattr) (struct dentry *, struct inode *, const char *, const void *, size_t, int); */
+#undef HAVE_DECL_SETXATTR_V2
+
+/* ssize_t (*getxattr) (struct dentry *, const char *, void *, size_t); */
+#undef HAVE_DECL_GETXATTR_V1
+
+/* ssize_t (*getxattr) (struct dentry *, struct inode *, const char *, void *, size_t); */
+#undef HAVE_DECL_GETXATTR_V2
+
+/* ssize_t generic_file_direct_write(struct kiocb *, struct iov_iter *, loff_t); */
+#undef HAVE_DECL_GENERIC_FILE_DIRECT_WRITE_V1
+
+/* ssize_t generic_file_direct_write(struct kiocb *, struct iov_iter *); */
+#undef HAVE_DECL_GENERIC_FILE_DIRECT_WRITE_V2
+
 /* ssize_t generic_file_buffered_write(struct kiocb *, const struct iovec *,
    unsigned long, loff_t, loff_t *, size_t, ssize_t); */
 #undef HAVE_DECL_GENERIC_FILE_BUFFERED_WRITE
@@ -183,6 +227,12 @@
 
 /* ssize_t generic_write_checks(struct kiocb *, struct iov_iter *); */
 #undef HAVE_DECL_GENERIC_WRITE_CHECKS_V2
+
+/* ssize_t generic_write_sync(struct file *, loff_t, loff_t); */
+#undef HAVE_DECL_GENERIC_WRITE_SYNC_V1
+
+/* ssize_t generic_write_sync(struct kiocb *, ssize_t); */
+#undef HAVE_DECL_GENERIC_WRITE_SYNC_V2
 
 /* Define to 1 if you have the declaration of `inc_nlink', and to 0 if you
    don't. */
@@ -282,6 +332,12 @@
    posix_acl *acl, void *buffer, size_t size); */
 #undef HAVE_DECL_POSIX_ACL_TO_XATTR_V2
 
+/* int posix_acl_valid(const struct posix_acl *); */
+#undef HAVE_DECL_POSIX_ACL_VALID_V1
+
+/* int posix_acl_valid(struct user_namespace *, const struct posix_acl *); */
+#undef HAVE_DECL_POSIX_ACL_VALID_V2
+
 /* Define to 1 if you have the declaration of `radix_tree_exceptional_entry',
    and to 0 if you don't. */
 #undef HAVE_DECL_RADIX_TREE_EXCEPTIONAL_ENTRY
@@ -315,6 +371,18 @@
 
 /* void truncate_inode_pages_final(struct address_space *); */
 #undef HAVE_DECL_TRUNCATE_INODE_PAGES_FINAL
+
+/* void inode_lock(struct inode *); */
+#undef HAVE_DECL_INODE_LOCK
+
+/* void inode_unlock(struct inode *); */
+#undef HAVE_DECL_INODE_UNLOCK
+
+/* int inode_trylock(struct inode *); */
+#undef HAVE_DECL_INODE_TRYLOCK
+
+/* int inode_is_locked(struct inode *); */
+#undef HAVE_DECL_INODE_IS_LOCKED
 
 /* Define to 1 if you have the declaration of `try_to_writeback_inodes_sb',
    and to 0 if you don't. */
