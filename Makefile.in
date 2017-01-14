@@ -67,7 +67,7 @@ endif
 
 EXTRA_CFLAGS +=	 $(MODULE_EXTRA_FLAGS)
 EXTRA_CFLAGS += -DUFSD_BUILD_HOST=\"`hostname`\"
-EXTRA_CFLAGS += -Wall -Werror -Wno-unknown-pragmas
+EXTRA_CFLAGS += -Wall -Wno-unused-function -Werror -Wno-unknown-pragmas
 
 ifdef PACKAGE_TAG
 EXTRA_CFLAGS += "-DPACKAGE_TAG=\"$(PACKAGE_TAG)\""

@@ -4460,7 +4460,7 @@ ufsd_set_size(
 //
 // inode_operations::setattr
 ///////////////////////////////////////////////////////////
-static int
+static inline int
 ufsd_setattr(
     IN struct dentry *de,
     IN struct iattr  *attr
@@ -4487,7 +4487,10 @@ ufsd_setattr(
     ia_valid = attr->ia_valid;
   }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
   err = inode_change_ok( i, attr );
+#endif
+  err = setattr_prepare( de, attr );
   if ( err ) {
 #ifdef UFSD_DEBUG
     unsigned int fs_uid   = __kuid_val( current_fsuid() );
@@ -4662,7 +4665,8 @@ ufsd_rename(
     IN struct inode   *odir,
     IN struct dentry  *ode,
     IN struct inode   *ndir,
-    IN struct dentry  *nde
+    IN struct dentry  *nde,
+    IN unsigned int   flags
     )
 {
   int err;
@@ -6147,10 +6151,12 @@ static const struct inode_operations ufsd_dir_inode_operations = {
   .setattr      = ufsd_setattr,
 #ifdef CONFIG_FS_POSIX_ACL
   .permission   = ufsd_permission,
+  .listxattr    = ufsd_listxattr,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
   .setxattr     = ufsd_setxattr,
   .getxattr     = ufsd_getxattr,
-  .listxattr    = ufsd_listxattr,
   .removexattr  = ufsd_removexattr,
+#endif
 #if defined HAVE_STRUCT_INODE_OPERATIONS_GET_ACL && HAVE_STRUCT_INODE_OPERATIONS_GET_ACL
   .get_acl      = ufsd_get_acl,
 #endif
@@ -6164,10 +6170,12 @@ static const struct inode_operations ufsd_dir_inode_operations = {
 static const struct inode_operations ufsd_special_inode_operations = {
 #ifdef CONFIG_FS_POSIX_ACL
   .permission   = ufsd_permission,
+  .listxattr    = ufsd_listxattr,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
   .setxattr     = ufsd_setxattr,
   .getxattr     = ufsd_getxattr,
-  .listxattr    = ufsd_listxattr,
   .removexattr  = ufsd_removexattr,
+#endif
 #if defined HAVE_STRUCT_INODE_OPERATIONS_GET_ACL && HAVE_STRUCT_INODE_OPERATIONS_GET_ACL
   .get_acl      = ufsd_get_acl,
 #endif
@@ -7921,10 +7929,12 @@ static const struct inode_operations ufsd_file_hfs_inode_ops = {
   .getattr      = ufsd_getattr,
 #ifdef CONFIG_FS_POSIX_ACL
   .permission   = ufsd_permission,
+  .listxattr    = ufsd_listxattr,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
   .setxattr     = ufsd_setxattr,
   .getxattr     = ufsd_getxattr,
-  .listxattr    = ufsd_listxattr,
   .removexattr  = ufsd_removexattr,
+#endif
 #if defined HAVE_STRUCT_INODE_OPERATIONS_GET_ACL && HAVE_STRUCT_INODE_OPERATIONS_GET_ACL
   .get_acl      = ufsd_get_acl,
 #endif
@@ -7946,10 +7956,12 @@ static const struct inode_operations ufsd_file_inode_ops = {
   .getattr      = ufsd_getattr,
 #ifdef CONFIG_FS_POSIX_ACL
   .permission   = ufsd_permission,
+  .listxattr    = ufsd_listxattr,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 8, 0)
   .setxattr     = ufsd_setxattr,
   .getxattr     = ufsd_getxattr,
-  .listxattr    = ufsd_listxattr,
   .removexattr  = ufsd_removexattr,
+#endif
 #if defined HAVE_STRUCT_INODE_OPERATIONS_GET_ACL && HAVE_STRUCT_INODE_OPERATIONS_GET_ACL
   .get_acl      = ufsd_get_acl,
 #endif
@@ -10481,6 +10493,7 @@ ufsd_direct_IO(
   unode *u        = UFSD_U( i );
   loff_t valid, i_size, new_size;
   struct page **pages;
+  unsigned int gup_flags = FOLL_FORCE;
   const struct iovec *iov_last = iov + nr_segs;
   size_t uaddr, len;
   ssize_t ret;
@@ -10567,7 +10580,7 @@ ufsd_direct_IO(
         get_user_pages
 #endif
         (
-          current, current->mm, uaddr, min_t( unsigned long, nr_pages, 64 ), 1, 0, pages, 0
+          current, current->mm, uaddr, min_t( unsigned long, nr_pages, 64 ), gup_flags, 0, 0
         );
         up_read( &current->mm->mmap_sem );
 
