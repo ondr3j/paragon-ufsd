@@ -183,6 +183,24 @@
 /* ssize_t (*getxattr) (struct dentry *, struct inode *, const char *, void *, size_t); */
 #undef HAVE_DECL_GETXATTR_V2
 
+/* int (*getattr) (struct vfsmount *mnt, struct dentry *, struct kstat *); */
+#undef HAVE_DECL_GETATTR_V1
+
+/* int (*getattr) (const struct path *, struct kstat *, u32, unsigned int); */
+#undef HAVE_DECL_GETATTR_V2
+
+/* int (*rename) (struct inode *, struct dentry *, struct inode *, struct dentry *); */
+#undef HAVE_DECL_RENAME_V1
+
+/* int (*rename) (struct inode *, struct dentry *, struct inode *, struct dentry *, unsigned int); */
+#undef HAVE_DECL_RENAME_V2
+
+/* int (*fault)(struct vm_area_struct *, struct vm_fault *); */
+#undef HAVE_DECL_FAULT_V1
+
+/* int (*fault)(struct vm_fault *); */
+#undef HAVE_DECL_FAULT_V2
+
 /* ssize_t generic_file_direct_write(struct kiocb *, struct iov_iter *, loff_t); */
 #undef HAVE_DECL_GENERIC_FILE_DIRECT_WRITE_V1
 
@@ -384,6 +402,15 @@
 /* int inode_is_locked(struct inode *); */
 #undef HAVE_DECL_INODE_IS_LOCKED
 
+/* void unmap_underlying_metadata(struct block_device *, sector_t); */
+#undef HAVE_DECL_UNMAP_UNDERLYING_METADATA
+
+/* void generic_readlink(struct dentry *, char __user *, int); */
+#undef HAVE_DECL_GENERIC_READLINK
+
+/* int setattr_prepare(struct dentry *, struct iattr *); */
+#undef HAVE_DECL_SETATTR_PREPARE
+
 /* Define to 1 if you have the declaration of `try_to_writeback_inodes_sb',
    and to 0 if you don't. */
 #undef HAVE_DECL_TRY_TO_WRITEBACK_INODES_SB
@@ -406,6 +433,14 @@
 /* Define to 1 if you have the declaration of `get_user_pages_remote', and to 0 if you
    don't. */
 #undef HAVE_DECL_GET_USER_PAGES_REMOTE
+
+/* long get_user_pages_remote(struct task_struct *, struct mm_struct *,
+   unsigned long, unsigned long, int, int, struct page **, struct vm_area_struct **); */
+#undef HAVE_DECL_GET_USER_PAGES_REMOTE_V1
+
+/* long get_user_pages_remote(struct task_struct *, struct mm_struct *,
+   unsigned long, unsigned long, unsigned int, struct page **, struct vm_area_struct **, int *); */
+#undef HAVE_DECL_GET_USER_PAGES_REMOTE_V2
 
 /* Define to 1 if you have the <generated/compile.h> header file. */
 #undef HAVE_GENERATED_COMPILE_H

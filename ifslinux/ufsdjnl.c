@@ -58,6 +58,10 @@ static const char s_FileVer[] = "$Id: ufsdjnl.c 273465 2016-04-13 12:33:16Z shur
   #define PSCT      "l"
 #endif
 
+#if !defined WRITE_SYNC
+  #define WRITE_SYNC REQ_SYNC
+#endif
+
 #define IN
 #define OUT
 

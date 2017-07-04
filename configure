@@ -7854,7 +7854,48 @@ $as_echo "${HAVE_DECL_LL_RW_BLOCK}" >&6; }
 # Checking inode_operations.setxattr
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking inode_operations.setxattr" >&5
 $as_echo_n "checking inode_operations.setxattr... " >&6; }
-HAVE_DECL_SETXATTR="V1"
+HAVE_DECL_SETXATTR="Unknown"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+static int
+ufsd_setxattr(
+    struct dentry *de,
+    const char    *name,
+    const void    *value,
+    size_t        size,
+    int           flags
+    )
+{
+  return 0;
+}
+
+int
+main ()
+{
+
+struct inode_operations ufsd_inode_op = {
+  .setxattr = ufsd_setxattr,
+};
+ sizeof(ufsd_inode_op);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_SETXATTR_V1 1" >>confdefs.h
+ HAVE_DECL_SETXATTR="V1"
+else
+
+$as_echo "#define HAVE_DECL_SETXATTR_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -7888,12 +7929,10 @@ struct inode_operations ufsd_inode_op = {
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
 
-$as_echo "#define HAVE_DECL_SETXATTR_V1 0" >>confdefs.h
 $as_echo "#define HAVE_DECL_SETXATTR_V2 1" >>confdefs.h
  HAVE_DECL_SETXATTR="V2"
 else
 
-$as_echo "#define HAVE_DECL_SETXATTR_V1 1" >>confdefs.h
 $as_echo "#define HAVE_DECL_SETXATTR_V2 0" >>confdefs.h
 
 fi
@@ -7905,7 +7944,47 @@ $as_echo "${HAVE_DECL_SETXATTR}" >&6; }
 # Checking inode_operations.getxattr
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking inode_operations.getxattr" >&5
 $as_echo_n "checking inode_operations.getxattr... " >&6; }
-HAVE_DECL_GETXATTR="V1"
+HAVE_DECL_GETXATTR="Unknown"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+static ssize_t
+ufsd_getxattr(
+    struct dentry *de,
+    const char    *name,
+    void          *value,
+    size_t        size
+    )
+{
+  return 0;
+}
+
+int
+main ()
+{
+
+struct inode_operations ufsd_inode_op = {
+  .getxattr = ufsd_getxattr,
+};
+ sizeof(ufsd_inode_op);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_GETXATTR_V1 1" >>confdefs.h
+ HAVE_DECL_GETXATTR="V1"
+else
+
+$as_echo "#define HAVE_DECL_GETXATTR_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -7938,18 +8017,234 @@ struct inode_operations ufsd_inode_op = {
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
 
-$as_echo "#define HAVE_DECL_GETXATTR_V1 0" >>confdefs.h
 $as_echo "#define HAVE_DECL_GETXATTR_V2 1" >>confdefs.h
  HAVE_DECL_GETXATTR="V2"
 else
 
-$as_echo "#define HAVE_DECL_GETXATTR_V1 1" >>confdefs.h
 $as_echo "#define HAVE_DECL_GETXATTR_V2 0" >>confdefs.h
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_GETXATTR}" >&5
 $as_echo "${HAVE_DECL_GETXATTR}" >&6; }
+
+
+# Checking inode_operations.getattr
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking inode_operations.getattr" >&5
+$as_echo_n "checking inode_operations.getattr... " >&6; }
+HAVE_DECL_GETATTR="Unknown"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+static int
+ufsd_getattr(
+    struct vfsmount *mnt,
+    struct dentry *de,
+    struct kstat *kstat
+    )
+{
+  return 0;
+}
+
+int
+main ()
+{
+
+struct inode_operations ufsd_inode_op = {
+  .getattr = ufsd_getattr,
+};
+ sizeof(ufsd_inode_op);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_GETATTR_V1 1" >>confdefs.h
+ HAVE_DECL_GETATTR="V1"
+else
+
+$as_echo "#define HAVE_DECL_GETATTR_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+static int
+ufsd_getattr(
+    const struct path *path,
+    struct kstat *stat,
+    u32 request_mask,
+    unsigned int query_flags
+    )
+{
+  return 0;
+}
+
+int
+main ()
+{
+
+struct inode_operations ufsd_inode_op = {
+  .getattr = ufsd_getattr,
+};
+ sizeof(ufsd_inode_op);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_GETATTR_V2 1" >>confdefs.h
+ HAVE_DECL_GETATTR="V2"
+else
+
+$as_echo "#define HAVE_DECL_GETATTR_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_GETATTR}" >&5
+$as_echo "${HAVE_DECL_GETATTR}" >&6; }
+
+
+# Checking inode_operations.rename
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking inode_operations.rename" >&5
+$as_echo_n "checking inode_operations.rename... " >&6; }
+HAVE_DECL_RENAME="V1"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/fs.h>
+
+static int
+ufsd_rename(
+    struct inode   *odir,
+    struct dentry  *ode,
+    struct inode   *ndir,
+    struct dentry  *nde,
+    unsigned int   flags
+    )
+{
+  return 0;
+}
+
+int
+main ()
+{
+
+struct inode_operations ufsd_inode_op = {
+  .rename = ufsd_rename,
+};
+ sizeof(ufsd_inode_op);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_RENAME_V1 0" >>confdefs.h
+$as_echo "#define HAVE_DECL_RENAME_V2 1" >>confdefs.h
+ HAVE_DECL_RENAME="V2"
+else
+
+$as_echo "#define HAVE_DECL_RENAME_V1 1" >>confdefs.h
+$as_echo "#define HAVE_DECL_RENAME_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_RENAME}" >&5
+$as_echo "${HAVE_DECL_RENAME}" >&6; }
+
+
+# Checking vm_operations_struct.fault
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking vm_operations_struct.fault" >&5
+$as_echo_n "checking vm_operations_struct.fault... " >&6; }
+HAVE_DECL_FAULT="Unknown"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/mm.h>
+
+static int
+ufsd_filemap_fault(
+    struct vm_area_struct *vma,
+    struct vm_fault *vmf
+    )
+{
+  return 0;
+}
+
+int
+main ()
+{
+
+struct vm_operations_struct ufsd_vm_op = {
+  .fault = ufsd_filemap_fault,
+};
+ sizeof(ufsd_vm_op);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_FAULT_V1 1" >>confdefs.h
+ HAVE_DECL_FAULT="V1"
+else
+
+$as_echo "#define HAVE_DECL_FAULT_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/mm.h>
+
+static int
+ufsd_filemap_fault(
+    struct vm_fault *vmf
+    )
+{
+  return 0;
+}
+
+int
+main ()
+{
+
+struct vm_operations_struct ufsd_vm_op = {
+  .fault = ufsd_filemap_fault,
+};
+ sizeof(ufsd_vm_op);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_FAULT_V2 1" >>confdefs.h
+ HAVE_DECL_FAULT="V2"
+else
+
+$as_echo "#define HAVE_DECL_FAULT_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_FAULT}" >&5
+$as_echo "${HAVE_DECL_FAULT}" >&6; }
 
 
 # Checking generic_file_direct_write version
@@ -8017,6 +8312,74 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 $as_echo "${HAVE_DECL_GENERIC_FILE_DIRECT_WRITE}" >&6; }
 
 
+# Checking get_user_pages_remote
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking get_user_pages_remote" >&5
+$as_echo_n "checking get_user_pages_remote... " >&6; }
+HAVE_DECL_GET_USER_PAGES_REMOTE="Unknown"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/mm.h>
+
+int
+main ()
+{
+  struct task_struct *tsk = NULL;
+  struct mm_struct *mm = NULL;
+  struct page **pages = NULL;
+  struct vm_area_struct **vmas = NULL;
+
+  get_user_pages_remote( tsk, mm, 0, 0, 0, 0, pages, vmas );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_GET_USER_PAGES_REMOTE_V1 1" >>confdefs.h
+ HAVE_DECL_GET_USER_PAGES_REMOTE="V1"
+else
+
+$as_echo "#define HAVE_DECL_GET_USER_PAGES_REMOTE_V1 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <linux/mm.h>
+
+int
+main ()
+{
+  struct task_struct *tsk = NULL;
+  struct mm_struct *mm = NULL;
+  struct page **pages = NULL;
+  struct vm_area_struct **vmas = NULL;
+  int *locked = NULL;
+
+  get_user_pages_remote( tsk, mm, 0, 0, 0, pages, vmas, locked );
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+$as_echo "#define HAVE_DECL_GET_USER_PAGES_REMOTE_V2 1" >>confdefs.h
+ HAVE_DECL_GET_USER_PAGES_REMOTE="V2"
+else
+
+$as_echo "#define HAVE_DECL_GET_USER_PAGES_REMOTE_V2 0" >>confdefs.h
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${HAVE_DECL_GET_USER_PAGES_REMOTE}" >&5
+$as_echo "${HAVE_DECL_GET_USER_PAGES_REMOTE}" >&6; }
+
+
 # Checking for inode_lock
 ac_fn_c_check_decl "$LINENO" "inode_lock" "ac_cv_have_decl_inode_lock" "#include <linux/fs.h>
 "
@@ -8070,6 +8433,48 @@ fi
 
 cat >>confdefs.h <<_ACEOF
 #define HAVE_DECL_INODE_IS_LOCKED $ac_have_decl
+_ACEOF
+
+
+# Checking for unmap_underlying_metadata
+ac_fn_c_check_decl "$LINENO" "unmap_underlying_metadata" "ac_cv_have_unmap_underlying_metadata" "#include <linux/buffer_head.h>
+"
+if test "x$ac_cv_have_unmap_underlying_metadata" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_UNMAP_UNDERLYING_METADATA $ac_have_decl
+_ACEOF
+
+
+# Checking for generic_readlink
+ac_fn_c_check_decl "$LINENO" "generic_readlink" "ac_cv_have_generic_readlink" "#include <linux/fs.h>
+"
+if test "x$ac_cv_have_generic_readlink" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_GENERIC_READLINK $ac_have_decl
+_ACEOF
+
+
+# Checking for setattr_prepare
+ac_fn_c_check_decl "$LINENO" "setattr_prepare" "ac_cv_have_setattr_prepare" "#include <linux/fs.h>
+"
+if test "x$ac_cv_have_setattr_prepare" = xyes; then :
+  ac_have_decl=1
+else
+  ac_have_decl=0
+fi
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_DECL_SETATTR_PREPARE $ac_have_decl
 _ACEOF
 
 

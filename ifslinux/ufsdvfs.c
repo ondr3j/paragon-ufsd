@@ -147,6 +147,10 @@ const char s_FileVer[] = "$Id: ufsdvfs.c 276852 2016-05-19 07:26:56Z zaytsev2 $"
   #elif defined HAVE_DECL_MODE_TYPE_UMODE_T && HAVE_DECL_MODE_TYPE_UMODE_T
     #define posix_acl_mode umode_t
   #endif
+
+  #if !(defined HAVE_DECL_SETXATTR_V1 && HAVE_DECL_SETXATTR_V1) && !(defined HAVE_DECL_SETXATTR_V2 && HAVE_DECL_SETXATTR_V2)
+    #define UFSD_USE_XATTR_HANDLERS
+  #endif
 #endif
 
 #if defined UFSD_HFS && !defined DCACHE_DIRECTORY_TYPE
@@ -1766,7 +1770,11 @@ ufsd_bd_unmap_meta(
   ProfileEnter( sbi, bdunmap_meta );
 
   while( 0 != nBlocks-- ) {
+#if defined HAVE_DECL_UNMAP_UNDERLYING_METADATA && HAVE_DECL_UNMAP_UNDERLYING_METADATA
     unmap_underlying_metadata( bdev, devblock++ );
+#else
+    clean_bdev_aliases( bdev, devblock++, 1 );
+#endif
     if ( cnt++ >= limit ) {
       DEBUG_ONLY( sbi->bdunmap_meta_sync += 1; )
       sync_blockdev( bdev );
@@ -4487,7 +4495,11 @@ ufsd_setattr(
     ia_valid = attr->ia_valid;
   }
 
+#if defined HAVE_DECL_SETATTR_PREPARE && HAVE_DECL_SETATTR_PREPARE
+  err = setattr_prepare( de, attr );
+#else
   err = inode_change_ok( i, attr );
+#endif
   if ( err ) {
 #ifdef UFSD_DEBUG
     unsigned int fs_uid   = __kuid_val( current_fsuid() );
@@ -4615,22 +4627,37 @@ out:
 ///////////////////////////////////////////////////////////
 static int
 ufsd_getattr(
-    IN struct vfsmount  *mnt,
-    IN struct dentry    *de,
-    OUT struct kstat    *kstat
+#if defined HAVE_DECL_GETATTR_V1 && HAVE_DECL_GETATTR_V1
+    IN struct vfsmount *mnt,
+    IN struct dentry   *de,
+    OUT struct kstat   *stat
+#endif
+#if defined HAVE_DECL_GETATTR_V2 && HAVE_DECL_GETATTR_V2
+    IN const struct path *path,
+    OUT struct kstat     *stat,
+    IN u32               request_mask,
+    IN unsigned int      flags
+#endif
     )
 {
-  struct inode *i = de->d_inode;
+  struct inode *i =
+#if defined HAVE_DECL_GETATTR_V1 && HAVE_DECL_GETATTR_V1
+    de->d_inode
+#endif
+#if defined HAVE_DECL_GETATTR_V2 && HAVE_DECL_GETATTR_V2
+    d_inode( path->dentry )
+#endif
+  ;
   unode *u = UFSD_U( i );
 #if 0
   usuper *sbi = UFSD_SB( i->i_sb );
   ufsd_preopen_file( sbi, u );
 #endif
 
-  generic_fillattr( i, kstat );
+  generic_fillattr( i, stat );
 
   if ( is_sparsed_or_compressed( u ) )
-    kstat->blocks = u->total_alloc >> 9;
+    stat->blocks = u->total_alloc >> 9;
 
 #if 0
   DebugTrace( 0, Dbg, ("getattr (r=%llx%s): m=%o, t=%lx,%lx,%lx, s=%llx, b=%llx\n",
@@ -4659,15 +4686,25 @@ ufsd_getattr(
 ///////////////////////////////////////////////////////////
 static int
 ufsd_rename(
-    IN struct inode   *odir,
-    IN struct dentry  *ode,
-    IN struct inode   *ndir,
-    IN struct dentry  *nde
+    IN struct inode   *odir
+  , IN struct dentry  *ode
+  , IN struct inode   *ndir
+  , IN struct dentry  *nde
+#if defined HAVE_DECL_RENAME_V2 && HAVE_DECL_RENAME_V2
+  , IN unsigned int   flags
+#endif
     )
 {
   int err;
-  usuper *sbi = UFSD_SB( odir->i_sb );
+  usuper *sbi;
   UINT64 odir_size = 0, ndir_size = 0;
+
+#if defined HAVE_DECL_RENAME_V2 && HAVE_DECL_RENAME_V2
+  if ( flags & ~RENAME_NOREPLACE )
+    return -EINVAL;
+#endif
+
+  sbi = UFSD_SB( odir->i_sb );
 
   VfsTrace( +1, Dbg, ("rename: r=%lx, %p('%.*s') => r=%lx, %p('%.*s')\n",
                       odir->i_ino, ode,
@@ -5550,8 +5587,8 @@ release_and_out:
 ///////////////////////////////////////////////////////////
 static ssize_t
 ufsd_getxattr(
-    IN struct dentry  *unused,
-#if defined HAVE_DECL_GETXATTR_V2 && HAVE_DECL_GETXATTR_V2
+    IN struct dentry  *de,
+#if !(defined HAVE_DECL_GETXATTR_V1 && HAVE_DECL_GETXATTR_V1)
     IN struct inode 	*i,
 #endif
     IN const char     *name,
@@ -5561,7 +5598,7 @@ ufsd_getxattr(
 {
   ssize_t err;
 #if defined HAVE_DECL_SETXATTR_V1 && HAVE_DECL_SETXATTR_V1
-  struct inode *i       = unused->d_inode;
+  struct inode *i       = de->d_inode;
 #endif
   unode *u              = UFSD_U( i );
   usuper *sbi           = UFSD_SB( i->i_sb );
@@ -5717,8 +5754,8 @@ out:
 ///////////////////////////////////////////////////////////
 noinline static int
 ufsd_setxattr(
-    IN struct dentry  *unused,
-#if defined HAVE_DECL_SETXATTR_V2 && HAVE_DECL_SETXATTR_V2
+    IN struct dentry  *de,
+#if !(defined HAVE_DECL_SETXATTR_V1 && HAVE_DECL_SETXATTR_V1)
     IN struct inode 	*i,
 #endif
     IN const char     *name,
@@ -5729,7 +5766,7 @@ ufsd_setxattr(
 {
   int err;
 #if defined HAVE_DECL_SETXATTR_V1 && HAVE_DECL_SETXATTR_V1
-  struct inode *i       = unused->d_inode;
+  struct inode *i       = de->d_inode;
 #endif
   unode *u              = UFSD_U( i );
   usuper *sbi           = UFSD_SB( i->i_sb );
@@ -5897,11 +5934,57 @@ ufsd_removexattr(
 {
   return ufsd_setxattr(
   	de,
-#if defined HAVE_DECL_SETXATTR_V2 && HAVE_DECL_SETXATTR_V2
+#if !(defined HAVE_DECL_SETXATTR_V1 && HAVE_DECL_SETXATTR_V1)
   	de->d_inode,
 #endif
   	name, NULL, 0, XATTR_REPLACE );
 }
+
+
+#ifdef UFSD_USE_XATTR_HANDLERS
+
+///////////////////////////////////////////////////////////
+// ufsd_xattr_get
+//
+// xattr_handler::get
+///////////////////////////////////////////////////////////
+static int
+ufsd_xattr_get(
+  IN const struct xattr_handler *h,
+  IN struct dentry              *de, 
+  IN struct inode               *i,
+  IN const char                 *name,
+  OUT void                      *buffer, 
+  IN size_t                     size
+  )
+{
+  return ufsd_getxattr(de, i, name, buffer, size);
+}
+
+
+///////////////////////////////////////////////////////////
+// ufsd_xattr_set
+//
+// xattr_handler::set
+///////////////////////////////////////////////////////////
+static int
+ufsd_xattr_set(
+  IN const struct xattr_handler *h,
+  IN struct dentry              *de,
+  IN struct inode               *i,
+  IN const char                 *name, 
+  IN const void                 *value, 
+  IN size_t                     size,
+  IN int                        flags
+  )
+{
+  if (!value)
+      return ufsd_removexattr(de, name);
+
+  return ufsd_setxattr(de, i, name, value, size, flags);
+}
+
+#endif // #ifdef UFSD_USE_XATTR_HANDLERS
 
 #endif // #ifdef CONFIG_FS_POSIX_ACL
 
@@ -6147,10 +6230,12 @@ static const struct inode_operations ufsd_dir_inode_operations = {
   .setattr      = ufsd_setattr,
 #ifdef CONFIG_FS_POSIX_ACL
   .permission   = ufsd_permission,
+  .listxattr    = ufsd_listxattr,
+#ifndef UFSD_USE_XATTR_HANDLERS
   .setxattr     = ufsd_setxattr,
   .getxattr     = ufsd_getxattr,
-  .listxattr    = ufsd_listxattr,
   .removexattr  = ufsd_removexattr,
+#endif
 #if defined HAVE_STRUCT_INODE_OPERATIONS_GET_ACL && HAVE_STRUCT_INODE_OPERATIONS_GET_ACL
   .get_acl      = ufsd_get_acl,
 #endif
@@ -6164,10 +6249,12 @@ static const struct inode_operations ufsd_dir_inode_operations = {
 static const struct inode_operations ufsd_special_inode_operations = {
 #ifdef CONFIG_FS_POSIX_ACL
   .permission   = ufsd_permission,
+  .listxattr    = ufsd_listxattr,
+#ifndef UFSD_USE_XATTR_HANDLERS
   .setxattr     = ufsd_setxattr,
   .getxattr     = ufsd_getxattr,
-  .listxattr    = ufsd_listxattr,
   .removexattr  = ufsd_removexattr,
+#endif
 #if defined HAVE_STRUCT_INODE_OPERATIONS_GET_ACL && HAVE_STRUCT_INODE_OPERATIONS_GET_ACL
   .get_acl      = ufsd_get_acl,
 #endif
@@ -6177,6 +6264,21 @@ static const struct inode_operations ufsd_special_inode_operations = {
 #endif
   .setattr      = ufsd_setattr,
 };
+
+#if defined CONFIG_FS_POSIX_ACL && defined UFSD_USE_XATTR_HANDLERS
+
+static const struct xattr_handler ufsd_xattr_handler = {
+  .prefix = "",
+  .get    = ufsd_xattr_get,
+  .set    = ufsd_xattr_set,
+};
+
+static const struct xattr_handler *ufsd_xattr_handlers[] = {
+  &ufsd_xattr_handler,
+  NULL
+};
+
+#endif // 
 
 
 ///////////////////////////////////////////////////////////
@@ -7341,16 +7443,26 @@ ufsd_filemap_close(
 ///////////////////////////////////////////////////////////
 static int
 ufsd_filemap_fault(
+#if defined HAVE_DECL_FAULT_V1 && HAVE_DECL_FAULT_V1
     IN struct vm_area_struct  *vma,
+#endif
     IN struct vm_fault        *vmf
     )
 {
+#if defined HAVE_DECL_FAULT_V2 && HAVE_DECL_FAULT_V2
+  struct vm_area_struct *vma = vmf->vma;
+#endif
   ufsd_vma_data *vd = vma->vm_private_data;
 
   //
   // Call base function
   //
-  int err = vd->base->fault( vma, vmf );
+  int err = vd->base->fault(
+#if defined HAVE_DECL_FAULT_V1 && HAVE_DECL_FAULT_V1    
+    vma,
+#endif
+    vmf
+  );
 
   if ( VM_FAULT_LOCKED & err ) {
     // Update maximum mapped range
@@ -7921,10 +8033,12 @@ static const struct inode_operations ufsd_file_hfs_inode_ops = {
   .getattr      = ufsd_getattr,
 #ifdef CONFIG_FS_POSIX_ACL
   .permission   = ufsd_permission,
+  .listxattr    = ufsd_listxattr,
+#ifndef UFSD_USE_XATTR_HANDLERS
   .setxattr     = ufsd_setxattr,
   .getxattr     = ufsd_getxattr,
-  .listxattr    = ufsd_listxattr,
   .removexattr  = ufsd_removexattr,
+#endif
 #if defined HAVE_STRUCT_INODE_OPERATIONS_GET_ACL && HAVE_STRUCT_INODE_OPERATIONS_GET_ACL
   .get_acl      = ufsd_get_acl,
 #endif
@@ -7946,10 +8060,12 @@ static const struct inode_operations ufsd_file_inode_ops = {
   .getattr      = ufsd_getattr,
 #ifdef CONFIG_FS_POSIX_ACL
   .permission   = ufsd_permission,
+  .listxattr    = ufsd_listxattr,
+#ifndef UFSD_USE_XATTR_HANDLERS
   .setxattr     = ufsd_setxattr,
   .getxattr     = ufsd_getxattr,
-  .listxattr    = ufsd_listxattr,
   .removexattr  = ufsd_removexattr,
+#endif
 #if defined HAVE_STRUCT_INODE_OPERATIONS_GET_ACL && HAVE_STRUCT_INODE_OPERATIONS_GET_ACL
   .get_acl      = ufsd_get_acl,
 #endif
@@ -8250,7 +8366,9 @@ static const struct inode_operations ufsd_link_inode_operations_ufsd = {
 
 #ifdef UFSD_HFS
 static const struct inode_operations ufsd_link_inode_operations_u8 = {
+#if defined HAVE_DECL_GENERIC_READLINK && HAVE_DECL_GENERIC_READLINK
   .readlink    = generic_readlink,
+#endif
 #if defined HAVE_STRUCT_INODE_OPERATIONS_GET_LINK && HAVE_STRUCT_INODE_OPERATIONS_GET_LINK
   .get_link    = page_get_link,
 #endif
@@ -9767,7 +9885,11 @@ UseUfsd:
         if ( is_sparsed( u ) && FlagOn( map.flags, UFSD_MAP_LBO_NEW ) ) {
           bh->b_blocknr = map.lbo >> blkbits;
 //          set_buffer_new( bh );
+#if defined HAVE_DECL_UNMAP_UNDERLYING_METADATA && HAVE_DECL_UNMAP_UNDERLYING_METADATA
           unmap_underlying_metadata( bh->b_bdev, bh->b_blocknr );
+#else
+          clean_bdev_bh_alias( bh );
+#endif
           set_buffer_mapped( bh );
           DebugTrace( 0, UFSD_LEVEL_WBWE, ("write_begin - set_mapped %llx => b=%" PSCT "x (new)\n", vbo, bh->b_blocknr ));
           if ( PageUpt ) {
@@ -10567,7 +10689,16 @@ ufsd_direct_IO(
         get_user_pages
 #endif
         (
-          current, current->mm, uaddr, min_t( unsigned long, nr_pages, 64 ), 1, 0, pages, 0
+          current, current->mm, uaddr, min_t( unsigned long, nr_pages, 64 ),
+#if defined HAVE_DECL_GET_USER_PAGES_REMOTE_V2 && HAVE_DECL_GET_USER_PAGES_REMOTE_V2
+          FOLL_WRITE
+#else
+          1, 0
+#endif
+          , pages, 0
+#if defined HAVE_DECL_GET_USER_PAGES_REMOTE_V2 && HAVE_DECL_GET_USER_PAGES_REMOTE_V2
+          , NULL
+#endif
         );
         up_read( &current->mm->mmap_sem );
 
@@ -13633,6 +13764,9 @@ ufsd_fill_super(
   //
   sb->s_magic       = info.fs_signature;
   sb->s_op          = &ufsd_sops;
+#if defined UFSD_USE_XATTR_HANDLERS
+  sb->s_xattr       = ufsd_xattr_handlers;
+#endif
   // NFS support
 #if defined UFSD_EXFAT || defined UFSD_FAT
   if ( sbi->options.exfat || sbi->options.fat )
